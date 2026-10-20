@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12141c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PokéTicker">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>PokeTicker</title>
+<style>
+  :root {
+    --bg: #12141c; --panel: #1b1f2b; --panel2: #232838; --line: #2e3448;
+    --text: #e8ebf5; --muted: #8b93ad; --accent: #ffcb05; --accent2: #3b4cca;
+    --up: #3ddc84; --down: #ff5c6c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 "Segoe UI", system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: linear-gradient(180deg, #1a1e2c, #151824); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+  h1 span { color: var(--accent); }
+  .meta { color: var(--muted); font-size: 12px; flex: 1; min-width: 180px; }
+  button, select, input { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font: inherit; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #1a1a1a; border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  input[type=number] { width: 70px; }
+  nav { display: flex; gap: 6px; padding: 12px 20px 0; flex-wrap: wrap; }
+  nav button { border-radius: 8px 8px 0 0; border-bottom: none; background: transparent; color: var(--muted); }
+  nav button.active { background: var(--panel); color: var(--accent); border-color: var(--line); }
+  main { padding: 0 20px 40px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 0 12px 12px 12px; padding: 16px; }
+  .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; color: var(--muted); font-size: 13px; }
+  .status { margin: 12px 20px 0; padding: 8px 12px; border-radius: 8px; background: var(--panel2); color: var(--muted); font-size: 13px; display: none; }
+  .status.show { display: block; }
+  .status.err { color: var(--down); }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 18px; }
+  h2 { font-size: 15px; margin: 0 0 10px; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px; text-decoration: none; color: inherit; }
+  .row:hover { background: var(--panel2); }
+  .row img { width: 46px; height: 64px; object-fit: cover; border-radius: 4px; background: #0003; flex: none; }
+  .row .info { flex: 1; min-width: 0; }
+  .row .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .sub { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .px { text-align: right; flex: none; }
+  .row .px b { display: block; font-size: 15px; }
+  .up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .tile { background: var(--panel2); border-radius: 12px; padding: 12px; }
+  .tile .big { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .tile .lbl { color: var(--muted); font-size: 12px; }
+  .empty { color: var(--muted); padding: 24px; text-align: center; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  th { color: var(--muted); font-weight: 600; }
+  .star { cursor: pointer; font-size: 20px; color: var(--muted); padding: 0 4px; user-select: none; flex: none; }
+  .star:hover, .star.on { color: var(--accent); }
+  .badge { cursor: pointer; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .badge::before { content: "●"; margin-right: 6px; }
+  .badge.on { color: var(--up); } .badge.on::before { animation: pulse 1.6s infinite; }
+  .badge.err { color: var(--down); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+  .livebar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: var(--panel2); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+  .livebar .grow { flex: 1; min-width: 200px; }
+  .feed { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 10px; animation: fresh 2s ease-out; }
+  .feed:hover { background: var(--panel2); }
+  .feed img { width: 34px; height: 48px; object-fit: cover; border-radius: 3px; flex: none; }
+  .feed .t { color: var(--muted); font-size: 11px; width: 62px; flex: none; }
+  @keyframes fresh { from { background: #ffcb0533; } to { background: transparent; } }
+  .toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 20; }
+  .toast { background: var(--panel2); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 14px; max-width: 320px; box-shadow: 0 6px 20px #0008; }
+  .searchres .row { padding: 4px 8px; }
+  input[type=text] { width: 100%; }
+  .sub2 { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+  .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); margin-bottom: 14px; }
+  .drop.over { border-color: var(--accent); color: var(--text); }
+  .spark { width: 100%; height: 36px; margin-top: 6px; }
+  td.num, th.num { text-align: right; }
+  .drawer { position: fixed; top: 0; right: 0; height: 100%; width: min(580px, 100%); background: var(--panel); border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .2s; z-index: 30; overflow-y: auto; padding: 18px; }
+  .drawer.open { transform: none; }
+  .scrim { position: fixed; inset: 0; background: #0008; z-index: 25; display: none; }
+  .scrim.show { display: block; }
+  .dhead { display: flex; gap: 14px; align-items: flex-start; }
+  .dhead img { width: 110px; border-radius: 6px; flex: none; }
+  .dhead h3 { margin: 0 0 4px; font-size: 20px; }
+  .xbtn { margin-left: auto; font-size: 18px; padding: 2px 10px; }
+  .big2 { font-size: 34px; font-weight: 700; margin: 12px 0 4px; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; background: var(--panel2); font-size: 12px; margin-right: 6px; }
+  .rangebtns { display: flex; gap: 6px; margin: 10px 0 4px; }
+  .rangebtns button { padding: 3px 10px; font-size: 12px; }
+  .rangebtns button.active { border-color: var(--accent); color: var(--accent); }
+  .chartbox { position: relative; }
+  .chart { width: 100%; height: auto; display: block; }
+  .chart text { fill: var(--muted); font-size: 10px; }
+  .tip { position: absolute; top: 4px; left: 50px; font-size: 12px; color: var(--text); background: var(--panel2); padding: 2px 8px; border-radius: 6px; pointer-events: none; opacity: 0; }
+  .dsec { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .dsec h4 { margin: 0 0 8px; font-size: 14px; }
+  .popform { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .popform input { width: 108px; }
+  table.scr tr[data-open] { cursor: pointer; }
+  table.scr tr[data-open]:hover td { background: var(--panel2); }
+  table.scr th[data-sort] { cursor: pointer; user-select: none; }
+  table.scr img { width: 26px; height: 36px; object-fit: cover; border-radius: 3px; vertical-align: middle; margin-right: 8px; }
+  table.scr .spark { width: 90px; height: 24px; margin: 0; }
+  .era { padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; margin: 10px 0 6px; cursor: pointer; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; background: var(--panel2); }
+  .era b { font-size: 15px; } .era .sp { flex: 1; }
+  .era .spark { width: 110px; height: 28px; margin: 0; }
+  .setdetail { background: var(--bg); border-radius: 10px; padding: 14px; margin: 4px 0 12px; }
+  .tabrow { cursor: pointer; } .tabrow:hover td { background: var(--panel2); }
+  .tile .big.up { color: var(--up); } .tile .big.down { color: var(--down); }
+  .intro { color: var(--muted); font-size: 13px; margin: 0 0 14px; max-width: 70ch; }
+  .menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .menu button { text-align: left; padding: 16px; border-radius: 12px; background: var(--panel2); }
+  .menu button b { display: block; font-size: 16px; color: var(--accent); margin-bottom: 4px; }
+  .menu button span { color: var(--muted); font-size: 13px; }
+  .idea { display: flex; gap: 12px; padding: 10px; border-radius: 12px; background: var(--panel2); cursor: pointer; margin-bottom: 8px; align-items: center; }
+  .idea img { width: 52px; height: 72px; object-fit: cover; border-radius: 4px; flex: none; }
+  .idea .info { flex: 1; min-width: 0; }
+  .todo { padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--panel2); border-radius: 0 8px 8px 0; margin-bottom: 6px; font-size: 14px; }
+  details.guide { background: var(--panel2); border-radius: 12px; padding: 12px 14px; margin-top: 16px; }
+  details.guide summary { cursor: pointer; font-weight: 600; }
+  @media (max-width: 760px) {
+    body { font-size: 15px; }
+    header { padding: 8px 12px; gap: 8px; }
+    h1 { font-size: 18px; }
+    header .meta { display: none; }
+    nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 15; padding: 0 0 env(safe-area-inset-bottom, 0px); gap: 0; background: var(--panel); border-top: 1px solid var(--line); justify-content: space-around; flex-wrap: nowrap; }
+    nav button { flex: 1; border: 0; border-radius: 0; padding: 13px 2px; font-size: 12px; }
+    nav button.active { background: transparent; border-top: 2px solid var(--accent); margin-top: -1px; }
+    main { padding: 0 8px 92px; }
+    .panel { padding: 12px; border-radius: 12px; margin-top: 10px; }
+    .cols { grid-template-columns: 1fr; }
+    #view table { display: block; overflow-x: auto; white-space: nowrap; }
+    .hm { display: none; }
+    .popform input, .popform select { flex: 1 1 130px; }
+    .drawer { width: 100%; }
+    .toasts { bottom: 74px; }
+    .tile .big { font-size: 20px; }
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .tile { padding: 10px; }
+  }
+  td a { color: var(--accent); text-decoration: none; margin-right: 6px; }
+  td a:hover { text-decoration: underline; }
+  .stat { display: inline-block; margin-right: 18px; } .stat b { display: block; font-size: 17px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Poké<span>Ticker</span></h1>
+  <div class="meta" id="meta">Loading…</div>
+  <span class="badge" id="livebadge" title="Open the Live tab">LIVE</span>
+  <label class="meta" style="flex:none">Recent sets
+    <select id="setCount"><option>4</option><option selected>8</option><option>12</option></select>
+  </label>
+  <button class="primary" id="refresh">Refresh now</button>
+</header>
+<div class="status" id="status"></div>
+<nav id="tabs">
+  <button data-tab="home" class="active">Home</button>
+  <button data-tab="deals">Buy Ideas</button>
+  <button data-tab="port">My Cards</button>
+  <button data-tab="comps">Sold Prices</button>
+  <button data-tab="more">More</button>
+</nav>
+<main><div class="panel" id="view"></div></main>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Card detail"></aside>
+
+<script>
+(async () => {
+const API = 'https://api.pokemontcg.io/v2';
+const $ = id => document.getElementById(id);
+
+// ---- storage: IndexedDB (hundreds of MB, scales to thousands of cards) with an in-memory copy; migrates old localStorage data ----
+const { mem: MEM, db: DB } = await new Promise(resolve => {
+  const mem = {};
+  const fallback = () => resolve({ mem, db: null });
+  setTimeout(fallback, 4000);   // never let a stuck database block the app from starting
+  try {
+    const req = indexedDB.open('poketrends', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('kv');
+    req.onerror = fallback;
+    req.onsuccess = () => {
+      const db = req.result;
+      try {
+        const tx = db.transaction('kv'), cur = tx.objectStore('kv').openCursor();
+        cur.onsuccess = () => { const c = cur.result; if (c) { mem[c.key] = c.value; c.continue(); } };
+        tx.oncomplete = () => resolve({ mem, db }); tx.onerror = fallback;
+      } catch (e) { fallback(); }
+    };
+  } catch (e) { fallback(); }
+});
+if (!Object.keys(MEM).some(k => k.startsWith('pt_'))) {      // first run on this storage: bring over anything saved by older versions
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith('pt_')) { try { MEM[k] = JSON.parse(localStorage.getItem(k)); } catch (e) { /* skip */ } } } } catch (e) { /* no localStorage */ }
+  if (DB) for (const [k, v] of Object.entries(MEM)) { try { DB.transaction('kv', 'readwrite').objectStore('kv').put(v, k); } catch (e) { /* ignore */ } }
+}
+const store = {
+  get(k, d) { return k in MEM ? MEM[k] : d; },
+  set(k, v) {
+    MEM[k] = v;
+    if (!DB) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { setTimeout(() => setStatus('Couldn’t save to browser storage — data may be lost when you close the app.', true)); } return; }
+    try { const tx = DB.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.onerror = () => setStatus('Couldn’t save data — your disk or browser storage may be full.', true); }
+    catch (e) { console.warn('storage', e); }
+  }
+};
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const usd = n => n == null ? '—' : '$' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct = n => n == null ? '—' : (n > 0 ? '+' : '') + n.toFixed(1) + '%';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+let state = {
+  cards: store.get('pt_cards', {}),   // id -> {n,s,sid,r,num,img,url,cm:{a1,a7,a30}}
+  snaps: store.get('pt_snaps', {}),   // date -> {id: price}
+  sets: store.get('pt_sets', []),     // [{id,name,releaseDate,count,priced}]
+  updated: store.get('pt_updated', null),
+  tab: 'port', minPrice: store.get('pt_min', 1),
+  deal: { min: 5, rar: '', sig: '', limit: 60 },
+  extra: store.get('pt_extra', []),            // set ids the user chose to track daily
+  fullDate: store.get('pt_fulldate', null),    // date of last full refresh
+  allSets: store.get('pt_allsets', null),      // every set the API knows (id,name,series,releaseDate,printedTotal)
+  open: {},                                    // expanded eras / sets in the Eras tab
+  sel: null,                                   // card open in the detail drawer
+  range: '30',                                 // chart range
+  scr: { q: '', era: '', rar: '', sort: 'price', dir: -1, limit: 100 },
+  pop: store.get('pt_pop', {})                 // cardId -> [{d, grader, g10, g9, g8, total}]
+};
+
+// ---------- live monitoring state ----------
+const live = {
+  on: store.get('pt_liveon', true),
+  interval: store.get('pt_interval', 10),            // minutes
+  notify: store.get('pt_notify', false),
+  alertPct: store.get('pt_alert', 3),
+  watch: store.get('pt_watch', []),                  // card ids
+  prices: store.get('pt_live', {}),                  // id -> last seen price
+  src: store.get('pt_livesrc', {}),                  // id -> source updatedAt date
+  feed: store.get('pt_feed', []),                    // [{t,id,old,p,pct}]
+  last: store.get('pt_lastpoll', null), next: Date.now() + 5000,
+  polling: false, error: '', unseen: 0, checked: 0
+};
+function saveLive() {
+  store.set('pt_liveon', live.on); store.set('pt_interval', live.interval); store.set('pt_notify', live.notify); store.set('pt_alert', live.alertPct);
+  store.set('pt_watch', live.watch); store.set('pt_live', live.prices); store.set('pt_livesrc', live.src); store.set('pt_feed', live.feed); store.set('pt_lastpoll', live.last);
+}
+
+function toast(msg) {
+  let box = $('toasts'); if (!box) { box = document.createElement('div'); box.id = 'toasts'; box.className = 'toasts'; document.body.appendChild(box); }
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; box.appendChild(t);
+  setTimeout(() => t.remove(), 9000);
+}
+function alertUser(title, body, icon) {
+  toast(title + ' — ' + body);
+  try { if (live.notify && 'Notification' in window && Notification.permission === 'granted') new Notification(title, { body, icon }); } catch (e) { /* ignore */ }
+}
+function updateBadge() {
+  const b = $('livebadge');
+  b.className = 'badge' + (!live.on ? '' : live.error ? ' err' : ' on');
+  b.textContent = (!live.on ? 'LIVE PAUSED' : live.error ? 'LIVE ERROR' : live.polling ? 'CHECKING…' : 'LIVE') + (live.unseen ? ` · ${live.unseen} new` : '');
+  document.title = (live.unseen ? `(${live.unseen}) ` : '') + 'PokeTicker';
+}
+function pollIds() {
+  const dates = Object.keys(state.snaps).sort();
+  const cur = dates.length ? state.snaps[dates[dates.length - 1]] : {};
+  const top = Object.entries(cur).filter(([id]) => state.cards[id]).sort((a, b) => b[1] - a[1]).slice(0, 100).map(([id]) => id);
+  return [...new Set([...live.watch, ...top])];
+}
+async function livePoll() {
+  if (live.polling) return;
+  live.polling = true; live.error = ''; updateBadge();
+  try {
+    const ids = pollIds(); if (!ids.length) throw new Error('No cards yet — run a refresh first.');
+    const found = {};
+    for (let i = 0; i < ids.length; i += 50) {
+      const q = ids.slice(i, i + 50).map(id => 'id:' + id).join(' OR ');
+      const data = (await getJson(`${API}/cards?q=${encodeURIComponent(q)}&pageSize=250&select=id,tcgplayer`)).data;
+      for (const c of data) { const p = bestPrice(c); if (p != null) found[c.id] = { p, d: c.tcgplayer.updatedAt }; }
+    }
+    const dates = Object.keys(state.snaps).sort(); const latest = dates.length ? dates[dates.length - 1] : null;
+    const base = latest ? state.snaps[latest] : {}; const now = Date.now(); let changes = 0;
+    for (const [id, f] of Object.entries(found)) {
+      const old = live.prices[id] != null ? live.prices[id] : base[id];
+      live.prices[id] = f.p; live.src[id] = f.d;
+      if (old != null && old > 0 && Math.abs(f.p - old) >= 0.005) {
+        const pc = (f.p - old) / old * 100; changes++;
+        live.feed.unshift({ t: now, id, old, p: f.p, pct: pc });
+        if (latest === today()) base[id] = f.p;   // keep today's snapshot current
+        const c = state.cards[id]; const watched = live.watch.includes(id);
+        if ((watched && Math.abs(pc) >= live.alertPct) || (Math.abs(pc) >= 15 && f.p >= 10))
+          alertUser(`${watched ? '★ ' : ''}${c.n} ${pc > 0 ? '▲' : '▼'} ${pct(pc)}`, `${usd(old)} → ${usd(f.p)} (${c.s})`, c.img);
+      }
+    }
+    live.feed = live.feed.slice(0, 300);
+    if (changes) { live.unseen += state.tab === 'live' ? 0 : changes; if (latest) store.set('pt_snaps', state.snaps); }
+    live.last = now; live.checked = Object.keys(found).length;
+  } catch (e) { live.error = e.message; }
+  live.polling = false; live.next = Date.now() + live.interval * 60000;
+  saveLive(); updateBadge(); if (state.tab === 'live') render();
+}
+function toggleWatch(id) {
+  const i = live.watch.indexOf(id); if (i >= 0) live.watch.splice(i, 1); else live.watch.push(id);
+  saveLive(); render(); renderDrawer();
+}
+function ago(ms) { const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? s + 's' : s < 3600 ? Math.round(s / 60) + 'm' : Math.round(s / 3600) + 'h'; }
+
+// ---------- collection import (Collectr / Card Ladder CSV exports) ----------
+// lots: one row per purchase. {uid, cardId|null, name, set, num, grade, qty, cost (per unit), date, src, kind, val (per-unit manual value|null)}
+const port = { lots: store.get('pt_lots', []), sales: store.get('pt_sales', []), hist: store.get('pt_porthist', []), msg: '', edit: null, form: { cardId: null }, showSales: false };
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+function savePort() { store.set('pt_lots', port.lots); store.set('pt_sales', port.sales); store.set('pt_porthist', port.hist); }
+
+function parseCsv(text) {
+  text = text.replace(/^﻿/, '');
+  const first = text.split(/\r?\n/)[0] || '';
+  const delim = [',', '\t', ';'].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], f = '', q = false;
+  const endRow = () => { row.push(f); f = ''; if (row.some(x => x.trim() !== '')) rows.push(row); row = []; };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === delim) { row.push(f); f = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; endRow(); }
+    else f += ch;
+  }
+  endRow();
+  return rows;
+}
+const COLS = {
+  name: ['product name', 'card name', 'name', 'card', 'item', 'description', 'title', 'product'],
+  set: ['set name', 'set', 'series', 'group', 'expansion', 'category'],
+  num: ['card number', 'number', 'card #', '#', 'no', 'card no'],
+  qty: ['quantity', 'qty', 'count', 'owned', 'amount'],
+  value: ['market price', 'market value', 'current value', 'current price', 'estimated value', 'latest price', 'price', 'value', 'market', 'current'],
+  cost: ['purchase price', 'price bought', 'bought price', 'bought', 'acquisition price','price paid', 'cost basis', 'cost', 'paid', 'purchase cost', 'buy price'],
+  grade: ['grade', 'grading', 'condition', 'grade company', 'grader'],
+  override: ['price override', 'override'],
+  date: ['date added', 'date purchased', 'purchase date', 'date bought', 'date acquired']
+};
+function mapHeaders(h) {
+  const lc = h.map(x => x.trim().toLowerCase()); const m = {}; const used = () => Object.values(m);
+  for (const [k, names] of Object.entries(COLS)) for (const n of names) { const i = lc.indexOf(n); if (i >= 0 && !used().includes(i)) { m[k] = i; break; } }
+  for (const [k, names] of Object.entries(COLS)) if (m[k] == null)
+    for (const n of names) { if (n.length < 4) continue; const i = lc.findIndex((x, j) => x.includes(n) && !used().includes(j)); if (i >= 0) { m[k] = i; break; } }
+  return m;
+}
+const toNum = x => { const n = parseFloat(String(x ?? '').replace(/[^0-9.\-]/g, '')); return isNaN(n) ? null : n; };
+const normNum = x => String(x ?? '').split('/')[0].replace(/^#/, '').trim().toLowerCase().replace(/^0+(?=\d)/, '');
+const itemKey = it => [it.name, it.set, it.num, it.grade].map(x => String(x || '').toLowerCase()).join('|');
+
+function importCsv(text, src, fileName) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) throw new Error('That file looks empty.');
+  const m = mapHeaders(rows[0]);
+  if (m.name == null) throw new Error('Couldn’t find a card-name column. Columns in the file: ' + rows[0].join(', '));
+  const get = (r, k) => m[k] == null ? '' : (r[m[k]] ?? '').trim();
+  const items = rows.slice(1).map(r => {
+    const name = get(r, 'name'); if (!name) return null;
+    const hashNum = (name.match(/#\s*([A-Za-z0-9-]+)/) || [])[1];
+    const grade = get(r, 'grade'), ov = toNum(get(r, 'override')), cost = toNum(get(r, 'cost')), d = get(r, 'date').slice(0, 10);
+    return { name, set: get(r, 'set'), num: normNum(get(r, 'num') || hashNum), grade: /^ungraded$/i.test(grade) ? '' : grade,
+      qty: toNum(get(r, 'qty')) ?? 1, value: ov > 0 ? ov : toNum(get(r, 'value')), cost: cost > 0 ? cost : null,   // a 0 cost in an export means "not entered"
+      date: /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : today() };
+  }).filter(Boolean);
+  if (!items.length) throw new Error('No card rows found in that file.');
+  // re-importing a source replaces that source's lots (your manual lots are untouched) but keeps costs you typed in
+  const oldCost = {}; for (const l of port.lots) if (l.src === src && l.cost != null) oldCost[itemKey(l)] = l.cost;
+  port.lots = port.lots.filter(l => l.src !== src);
+  for (const it of items) port.lots.push({ uid: uid(), cardId: matchTrackedId(it), name: it.name, set: it.set, num: it.num, grade: it.grade, qty: it.qty, cost: it.cost ?? oldCost[itemKey(it)] ?? null, val: it.value, date: it.date, src, kind: 'card' });
+  savePort();
+  return { n: items.length, mapped: Object.fromEntries(Object.entries(m).map(([k, i]) => [k, rows[0][i]])) };
+}
+
+let trackedIdx = null;
+function matchTrackedId(it) {
+  if (!trackedIdx) { trackedIdx = {}; for (const [id, c] of Object.entries(state.cards)) (trackedIdx[normNum(c.num)] ||= []).push([id, c]); }
+  const cands = trackedIdx[it.num]; if (!cands) return null;
+  const nm = it.name.toLowerCase(), st = (it.set || '').toLowerCase();
+  const hit = cands.find(([, c]) => nm.includes(c.n.toLowerCase()) && (!st || st.includes(c.s.toLowerCase()) || c.s.toLowerCase().includes(st) || nm.includes(c.s.toLowerCase())));
+  return hit ? hit[0] : null;
+}
+function setStatus(msg, err) { const el = $('status'); el.textContent = msg || ''; el.className = 'status' + (msg ? ' show' : '') + (err ? ' err' : ''); }
+
+async function getJson(url, tries = 4) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 45000);
+      const r = await fetch(url, { signal: ctl.signal }); clearTimeout(t);
+      if (r.ok) return await r.json();
+      last = new Error('HTTP ' + r.status);
+    } catch (e) { last = e; }
+    await new Promise(r => setTimeout(r, 1200 * (i + 1)));
+  }
+  throw last;
+}
+
+// best USD market price across card variants (holofoil, normal, etc.)
+function bestVariant(c) {
+  const p = c.tcgplayer && c.tcgplayer.prices; if (!p) return null;
+  let best = null;
+  for (const [name, v] of Object.entries(p)) { const m = v && (v.market ?? v.mid); if (m != null && (best == null || m > best.market)) best = { name, market: Math.round(m * 100) / 100, low: v.low, mid: v.mid, high: v.high }; }
+  return best;
+}
+function bestPrice(c) { const b = bestVariant(c); return b ? b.market : null; }
+
+// fetch every card of one set into `snap` (id -> price) and `cards` (metadata); throws if the API keeps failing
+async function fetchSet(s, snap, cards) {
+  let page = 1, got = 0, priced = 0, src = '';
+  while (true) {
+    const data = (await getJson(`${API}/cards?q=set.id:${s.id}&page=${page}&pageSize=250&select=id,name,number,rarity,images,tcgplayer,cardmarket`)).data;
+    for (const c of data) {
+      got++;
+      const bv = bestVariant(c); if (!bv) continue;
+      const cm = c.cardmarket && c.cardmarket.prices;
+      const u = c.tcgplayer && c.tcgplayer.updatedAt; if (u && u > src) src = u;
+      cards[c.id] = { n: c.name, s: s.name, sid: s.id, ser: s.series || '', r: c.rarity || '', num: c.number, img: c.images && c.images.small, url: (c.tcgplayer && c.tcgplayer.url) || '',
+        pr: { v: bv.name, l: bv.low, m: bv.mid, h: bv.high },
+        cm: cm && cm.avg7 ? { a1: cm.avg1, a7: cm.avg7, a30: cm.avg30, t: cm.trendPrice } : null };
+      snap[c.id] = bv.market; priced++;
+    }
+    if (data.length < 250) break; page++;
+  }
+  return { id: s.id, name: s.name, releaseDate: s.releaseDate, series: s.series || '', count: got, priced, srcDate: src };
+}
+
+function saveCore() {
+  const dates = Object.keys(state.snaps).sort(); while (dates.length > 60) delete state.snaps[dates.shift()];
+  store.set('pt_cards', state.cards); store.set('pt_snaps', state.snaps); store.set('pt_sets', state.sets); store.set('pt_updated', state.updated); store.set('pt_extra', state.extra); store.set('pt_fulldate', state.fullDate);
+}
+
+async function refresh(auto) {
+  const btn = $('refresh'); btn.disabled = true;
+  const n = +$('setCount').value; store.set('pt_nsets', n);
+  try {
+    setStatus('Finding the newest sets…');
+    const sets = (await getJson(`${API}/sets?orderBy=-releaseDate&pageSize=${n + 10}&select=id,name,series,releaseDate,total`)).data;
+    const nowStr = today().replace(/-/g, '/');
+    const recent = sets.filter(s => s.releaseDate <= nowStr);
+    const snap = {}; const cards = { ...state.cards }; const setInfo = []; const failed = []; let pricedSets = 0;
+    for (let i = 0; i < recent.length && pricedSets < n; i++) {
+      setStatus(`Fetching ${recent[i].name} (${pricedSets}/${n} priced sets found)…`);
+      try { const info = await fetchSet(recent[i], snap, cards); setInfo.push(info); if (info.priced) pricedSets++; }
+      catch (e) { failed.push(recent[i].name); }
+    }
+    // sets you chose to track from the Eras & Sets tab
+    for (const sid of state.extra) {
+      if (setInfo.some(x => x.id === sid)) continue;
+      const meta = (state.allSets || []).find(x => x.id === sid); if (!meta) continue;
+      setStatus(`Fetching tracked set ${meta.name}…`);
+      try { setInfo.push(await fetchSet(meta, snap, cards)); } catch (e) { failed.push(meta.name); }
+    }
+    if (!Object.keys(snap).length) throw new Error('No price data came back (the card API may be having a bad moment). Try again in a few minutes.');
+    state.snaps[today()] = snap;
+    state.cards = cards; state.sets = setInfo; state.updated = new Date().toISOString(); state.fullDate = today();
+    saveCore();
+    setStatus(failed.length ? `Updated, but couldn't load: ${failed.join(', ')} (API hiccup — refresh again later).` : '', !!failed.length);
+  } catch (e) {
+    setStatus('Refresh failed: ' + e.message, true);
+  }
+  btn.disabled = false; if (port.lots.length) recordPort(); render(); renderDrawer();
+}
+
+// ---------- analysis ----------
+function analysis() {
+  const dates = Object.keys(state.snaps).sort();
+  const cur = dates.length ? state.snaps[dates[dates.length - 1]] : {};
+  const prevDate = dates.length > 1 ? dates[dates.length - 2] : null;
+  const prev = prevDate ? state.snaps[prevDate] : null;
+  const weekDate = [...dates].reverse().find(d => (new Date(dates[dates.length - 1]) - new Date(d)) >= 6.5 * 864e5);
+  const rows = [];
+  for (const [id, price] of Object.entries(cur)) {
+    const c = state.cards[id]; if (!c) continue;
+    let chg = null, src = '';
+    if (prev && prev[id] > 0) { chg = (price - prev[id]) / prev[id] * 100; src = 'vs ' + prevDate; }
+    else if (c.cm && c.cm.a7 > 0 && c.cm.a1 != null) { chg = (c.cm.a1 - c.cm.a7) / c.cm.a7 * 100; src = '1d vs 7d avg (Cardmarket)'; }
+    let wk = null;
+    if (weekDate && state.snaps[weekDate][id] > 0) wk = (price - state.snaps[weekDate][id]) / state.snaps[weekDate][id] * 100;
+    rows.push({ id, c, price, chg, src, wk });
+  }
+  return { rows, dates, prevDate, hasHistory: !!prev };
+}
+
+function drawScreener() {
+  const a = lastA, box = $('scrbody'); if (!a || !box) return;
+  const s = state.scr, q = s.q.trim().toLowerCase();
+  let rows = a.rows.filter(r => r.price >= state.minPrice && (!s.era || eraOfCard(r.c) === s.era) && (!s.rar || r.c.r === s.rar)
+    && (!q || (r.c.n + ' ' + r.c.s + ' ' + ticker(r.id, r.c)).toLowerCase().includes(q)));
+  rows = rows.map(r => ({ ...r, pf: perfOf(r.id, r.price, r.c) }));
+  const dv = r => s.sort === 'name' ? r.c.n.toLowerCase() : s.sort === 'set' ? r.c.s.toLowerCase() : s.sort === 'price' ? r.price : r.pf[s.sort];
+  rows.sort((x, y) => { const a1 = dv(x), b1 = dv(y); if (a1 == null) return 1; if (b1 == null) return -1; return (a1 < b1 ? -1 : a1 > b1 ? 1 : 0) * s.dir; });
+  const moved = rows.filter(r => r.pf.d1 != null);
+  const adv = moved.filter(r => r.pf.d1 > 0.05).length, dec = moved.filter(r => r.pf.d1 < -0.05).length;
+  const avg = moved.length ? moved.reduce((t, r) => t + r.pf.d1, 0) / moved.length : null;
+  const cap = rows.reduce((t, r) => t + r.price, 0);
+  const th = (k, l, cls) => `<th data-sort="${k}" class="${cls || ''}">${l}${s.sort === k ? (s.dir < 0 ? ' ▼' : ' ▲') : ''}</th>`;
+  box.innerHTML = `<div class="grid" style="margin-bottom:14px">
+      <div class="tile"><div class="lbl">Cards shown</div><div class="big">${rows.length.toLocaleString()}</div></div>
+      <div class="tile"><div class="lbl">Advancers / Decliners</div><div class="big"><span class="up">${adv}</span> / <span class="down">${dec}</span></div></div>
+      <div class="tile"><div class="lbl">Average 1D move</div><div class="big">${chgCell(avg)}</div></div>
+      <div class="tile"><div class="lbl">Sum of prices</div><div class="big">${usd(cap)}</div></div></div>
+    <table class="scr"><tr><th></th>${th('name', 'Card')}${th('set', 'Set', 'hm')}<th class="hm">Rarity</th>${th('price', 'Price', 'num')}${th('d1', '1D', 'num')}${th('d7', '7D', 'num hm')}${th('d30', '30D', 'num hm')}<th class="hm">Trend</th></tr>` +
+    rows.slice(0, s.limit).map(r => {
+      const vals = r.pf.pts.length > 1 ? r.pf.pts.map(p => p.v) : (r.c.cm ? [r.c.cm.a30, r.c.cm.a7, r.c.cm.a1].filter(x => x != null) : []);
+      const col = vals.length > 1 && vals[vals.length - 1] < vals[0] ? 'var(--down)' : 'var(--up)';
+      return `<tr data-open="${esc(r.id)}"><td><span class="star${live.watch.includes(r.id) ? ' on' : ''}" data-id="${esc(r.id)}" role="button">${live.watch.includes(r.id) ? '★' : '☆'}</span></td>
+        <td><img loading="lazy" src="${esc(r.c.img || '')}" alt=""><b>${esc(r.c.n)}</b> <span class="flat">${esc(ticker(r.id, r.c))}</span></td><td class="hm">${esc(r.c.s)}</td><td class="hm">${esc(r.c.r || '')}</td>
+        <td class="num"><b>${usd(r.price)}</b></td><td class="num">${chgCell(r.pf.d1)}</td><td class="num hm">${chgCell(r.pf.d7)}</td><td class="num hm">${chgCell(r.pf.d30)}</td><td class="hm">${spark(vals, col)}</td></tr>`;
+    }).join('') + `</table>${rows.length > s.limit ? `<p style="text-align:center"><button id="smore">Show ${Math.min(100, rows.length - s.limit)} more</button></p>` : ''}
+    <p class="note">Click any card for its full quote page, chart and population tracker. Until PokeTicker has that many days of its own history, 1D/7D use Cardmarket’s 1-day vs 7-day average and 30D uses 1-day vs 30-day.</p>`;
+  box.querySelectorAll('th[data-sort]').forEach(h => h.onclick = () => { const k = h.dataset.sort; if (s.sort === k) s.dir *= -1; else { s.sort = k; s.dir = (k === 'name' || k === 'set') ? 1 : -1; } drawScreener(); });
+  const more = box.querySelector('#smore'); if (more) more.onclick = () => { s.limit += 100; drawScreener(); };
+}
+
+// Eras & Sets browser
+function eraView(a) {
+  if (!state.allSets) return '<div class="empty">Loading the full list of sets…</div>';
+  const sets = state.allSets.concat(UPCOMING.filter(u => !state.allSets.some(s => s.name.toLowerCase() === u.name.toLowerCase())));
+  const bySet = {}; a.rows.forEach(r => (bySet[r.c.sid] ||= []).push(r));
+  const grouped = {}; sets.forEach(s => (grouped[eraOfSeries(s.series)] ||= []).push(s));
+  const nowStr = today().replace(/-/g, '/');
+  const isOpen = (key, dflt) => key in state.open ? state.open[key] : dflt;
+  let html = '<p class="sub2">Every era and series, newest first. Click an era to see its sets, then a set for its rarity breakdown and top cards. Sets outside the auto-tracked recent ones can be loaded and tracked daily.</p>', first = true;
+  for (const [label] of ERA_GROUPS) {
+    const list = grouped[label]; if (!list) continue;
+    list.sort((x, y) => y.releaseDate.localeCompare(x.releaseDate));
+    const years = [...new Set(list.map(s => s.releaseDate.slice(0, 4)))].sort(), yr = years.length > 1 ? years[0] + '–' + years[years.length - 1] : years[0];
+    const eraRows = list.flatMap(s => bySet[s.id] || []), idx = eraRows.length ? groupIndex(eraRows.map(r => r.id)) : null;
+    const open = isOpen('era:' + label, first && eraRows.length > 0); if (eraRows.length) first = false;
+    html += `<div class="era" data-toggle="era:${esc(label)}"><b>${open ? '▾' : '▸'} ${esc(label)}</b><span class="flat">${list.length} sets · ${yr}</span><span class="sp"></span>
+      <span class="flat">${eraRows.length ? eraRows.length.toLocaleString() + ' cards tracked' : 'not loaded yet'}</span>
+      ${idx ? `<span>Era index <b>${usd(idx.value)}</b> ${chgCell(idx.chg)}</span>${spark(idx.series, idx.chg < 0 ? 'var(--down)' : 'var(--up)')}` : ''}</div>`;
+    if (!open) continue;
+    html += `<table><tr><th>Set</th><th>Released</th><th class="num">Printed</th><th>Status</th><th class="num">Top card</th><th class="num">Set index</th><th class="num">1D</th></tr>`;
+    for (const s of list) {
+      const rs = bySet[s.id] || [], upcoming = s.upcoming || s.releaseDate > nowStr, tracked = rs.length > 0;
+      const idx2 = tracked ? groupIndex(rs.map(r => r.id)) : null, top = tracked ? rs.reduce((m, r) => r.price > m.price ? r : m) : null;
+      const sopen = isOpen('set:' + s.id, false);
+      html += `<tr class="tabrow" data-toggle="set:${esc(s.id)}"><td>${sopen ? '▾' : '▸'} <b>${esc(s.name)}</b></td><td>${esc(s.releaseDate)}</td><td class="num">${s.printedTotal ?? '—'}</td>
+        <td>${upcoming ? '<span class="pill">Upcoming</span>' : tracked ? '<span class="pill up">Tracked</span>' : '<span class="pill">Not loaded</span>'}</td>
+        <td class="num">${top ? usd(top.price) : '—'}</td><td class="num">${idx2 ? usd(idx2.value) : '—'}</td><td class="num">${idx2 ? chgCell(idx2.chg) : '—'}</td></tr>`;
+      if (sopen) {
+        let body;
+        if (upcoming) body = `<div class="empty">Not released yet (${esc(s.releaseDate)}). Prices appear a few days after release — once the set is in the card database, load it here.</div>`;
+        else if (!tracked) {
+          const inExtra = state.extra.includes(s.id);
+          body = `<div class="empty">${inExtra ? 'Loading… or no prices published for this set yet.' : 'This set isn’t being tracked yet.'}<br><br><button class="primary" data-track="${esc(s.id)}">${inExtra ? 'Retry loading' : 'Load &amp; track this set daily'}</button></div>`;
+        } else {
+          const byR = {}; rs.forEach(r => (byR[r.c.r || 'Unknown'] ||= []).push(r));
+          const rar = Object.entries(byR).map(([k, v]) => ({ k, n: v.length, avg: v.reduce((t, r) => t + r.price, 0) / v.length, max: Math.max(...v.map(r => r.price)) })).sort((x, y) => y.max - x.max);
+          const cap = rs.reduce((t, r) => t + r.price, 0), info = state.sets.find(x => x.id === s.id);
+          body = `<div style="margin-bottom:10px"><span class="stat"><b>${usd(cap)}</b>sum of all prices</span><span class="stat"><b>${idx2 ? usd(idx2.value) : '—'}</b>top-10 index</span><span class="stat"><b>${rs.length}${s.printedTotal ? ' / ' + (s.total || s.printedTotal) : ''}</b>cards priced</span><span class="stat"><b>${esc(info && info.srcDate || '—')}</b>source price date</span>
+              ${state.extra.includes(s.id) ? `<button data-untrack="${esc(s.id)}">Stop tracking</button>` : ''}</div>
+            <div class="cols"><div><h2>Rarity breakdown (card population)</h2><table><tr><th>Rarity</th><th class="num">Cards</th><th class="num">Avg price</th><th class="num">Top price</th></tr>${rar.map(x => `<tr><td>${esc(x.k)}</td><td class="num">${x.n}</td><td class="num">${usd(x.avg)}</td><td class="num">${usd(x.max)}</td></tr>`).join('')}</table></div>
+            <div><h2>Top cards</h2>${[...rs].sort((x, y) => y.price - x.price).slice(0, 10).map(r => rowHtml(r, 'value')).join('')}</div></div>`;
+        }
+        html += `<tr><td colspan="7"><div class="setdetail">${body}</div></td></tr>`;
+      }
+    }
+    html += '</table>';
+  }
+  return html;
+}
+
+function rowHtml(r, mode) {
+  const cls = r.chg > 0.05 ? 'up' : r.chg < -0.05 ? 'down' : 'flat';
+  const link = r.c.url ? `href="${esc(r.c.url)}" target="_blank" rel="noopener"` : '';
+  const sub = `${esc(r.c.s)} · #${esc(r.c.num)} · ${esc(r.c.r || 'n/a')}`;
+  const right = mode === 'value'
+    ? `<b>${usd(r.price)}</b><span class="${cls}">${pct(r.chg)}</span>`
+    : `<b class="${cls}">${pct(r.chg)}</b><span class="flat">${usd(r.price)}</span>`;
+  const star = `<span class="star${live.watch.includes(r.id) ? ' on' : ''}" role="button" data-id="${esc(r.id)}" title="Watch this card">${live.watch.includes(r.id) ? '★' : '☆'}</span>`;
+  return `<a class="row" data-open="${esc(r.id)}" ${link}><img loading="lazy" src="${esc(r.c.img || '')}" alt=""><div class="info"><div class="name">${esc(r.c.n)}</div><div class="sub">${sub}</div></div><div class="px">${right}</div>${star}</a>`;
+}
+
+// ---------- eras & series ----------
+const ERA_GROUPS = [
+  ['Mega Evolution', ['Mega Evolution']],
+  ['Scarlet & Violet', ['Scarlet & Violet']],
+  ['Sword & Shield', ['Sword & Shield']],
+  ['Sun & Moon', ['Sun & Moon']],
+  ['XY', ['XY']],
+  ['Black & White', ['Black & White']],
+  ['HeartGold & SoulSilver', ['HeartGold & SoulSilver']],
+  ['Diamond & Pearl / Platinum', ['Diamond & Pearl', 'Platinum']],
+  ['EX Era (Ruby & Sapphire)', ['EX']],
+  ['Wizards of the Coast Era', ['Base', 'Gym', 'Neo', 'E-Card']],
+  ['Promos & Other', []]
+];
+const UPCOMING = [{ id: 'upcoming-delta-reign', name: 'Delta Reign', series: 'Mega Evolution', releaseDate: '2026/11/06', printedTotal: null, upcoming: true }];
+const eraOfSeries = s => (ERA_GROUPS.find(([, l]) => l.includes(s)) || ERA_GROUPS[ERA_GROUPS.length - 1])[0];
+let seriesBySet = null;
+function eraOfCard(c) {
+  let ser = c.ser;
+  if (!ser && state.allSets) { if (!seriesBySet) { seriesBySet = {}; state.allSets.forEach(s => { seriesBySet[s.id] = s.series; }); } ser = seriesBySet[c.sid]; }
+  return eraOfSeries(ser || '');
+}
+async function loadAllSets(force) {
+  if (state.allSets && !force) return;
+  try {
+    let all = [], page = 1;
+    while (true) {
+      const d = (await getJson(`${API}/sets?orderBy=-releaseDate&page=${page}&pageSize=250&select=id,name,series,releaseDate,printedTotal,total`)).data;
+      all = all.concat(d); if (d.length < 250) break; page++;
+    }
+    state.allSets = all; store.set('pt_allsets', all); seriesBySet = null;
+  } catch (e) { setStatus('Couldn’t load the list of all sets: ' + e.message, true); }
+  if (state.tab === 'sets' || state.tab === 'market') render();
+}
+async function trackSet(sid) {
+  const meta = (state.allSets || []).find(s => s.id === sid); if (!meta) return;
+  if (!state.extra.includes(sid)) state.extra.push(sid);
+  if (state.fullDate !== today()) { saveCore(); return refresh(false); }
+  setStatus(`Loading ${meta.name}…`);
+  try {
+    const snap = (state.snaps[today()] ||= {});
+    const info = await fetchSet(meta, snap, state.cards);
+    state.sets = state.sets.filter(x => x.id !== sid).concat(info); saveCore();
+    setStatus(info.priced ? '' : `${meta.name} has no price data published yet — it will keep being checked daily.`, !info.priced);
+  } catch (e) { setStatus(`Couldn’t load ${meta.name}: ${e.message}`, true); }
+  render();
+}
+function untrackSet(sid) { state.extra = state.extra.filter(x => x !== sid); saveCore(); render(); }
+
+// ---------- price history & performance ----------
+const DAY = 864e5;
+function seriesOf(id) {
+  const out = [];
+  for (const d of Object.keys(state.snaps).sort()) { const v = state.snaps[d][id]; if (v != null) out.push({ t: new Date(d + 'T12:00:00').getTime(), v }); }
+  return out;
+}
+function latestPrice(id) {
+  const ds = Object.keys(state.snaps).sort();
+  for (let i = ds.length - 1; i >= 0; i--) { const v = state.snaps[ds[i]][id]; if (v != null) return v; }
+  return live.prices[id] ?? null;
+}
+function baseAt(pts, tCut) { for (let i = pts.length - 1; i >= 0; i--) if (pts[i].t <= tCut) return pts[i]; return null; }
+function perfOf(id, price, c) {
+  const pts = seriesOf(id), lastT = pts.length ? pts[pts.length - 1].t : null, out = { pts };
+  for (const n of [1, 7, 30]) {
+    let v = null;
+    if (lastT != null) { const b = baseAt(pts, lastT - (n - 0.5) * DAY); if (b && b.v > 0) v = (price - b.v) / b.v * 100; }
+    if (v == null && c.cm) { const ref = n === 30 ? c.cm.a30 : c.cm.a7; if (ref > 0 && c.cm.a1 != null) v = (c.cm.a1 - ref) / ref * 100; }
+    out['d' + n] = v;
+  }
+  return out;
+}
+const chgCell = v => `<span class="${v > 0.05 ? 'up' : v < -0.05 ? 'down' : 'flat'}">${pct(v)}</span>`;
+function groupIndex(ids, k = 10) {
+  const cur = ids.map(id => [id, latestPrice(id)]).filter(x => x[1] != null).sort((a, b) => b[1] - a[1]).slice(0, k);
+  if (!cur.length) return null;
+  const keys = cur.map(x => x[0]), series = [];
+  for (const d of Object.keys(state.snaps).sort()) { const s = state.snaps[d]; let t = 0, ok = true; for (const id of keys) { if (s[id] == null) { ok = false; break; } t += s[id]; } if (ok) series.push(t); }
+  const value = cur.reduce((t, x) => t + x[1], 0);
+  const prev = series.length > 1 ? series[series.length - 2] : null;
+  return { value, chg: prev ? (value - prev) / prev * 100 : null, series, n: keys.length };
+}
+function spark(vals, color) {
+  if (vals.length < 2) return '';
+  const mn = Math.min(...vals), mx = Math.max(...vals), rng = mx - mn || 1;
+  const pts = vals.map((v, i) => `${(i / (vals.length - 1) * 200).toFixed(1)},${(34 - (v - mn) / rng * 30).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none"><polyline fill="none" stroke="${color || 'var(--accent)'}" stroke-width="2" points="${pts}"/></svg>`;
+}
+const ticker = (id, c) => (c.sid || '').toUpperCase() + '-' + String(c.num || '').toUpperCase();
+
+// ---------- card detail drawer (the "stock quote" page) ----------
+let chartCtx = null;
+function buildChart(id, price, c) {
+  const pts = seriesOf(id);
+  for (const f of live.feed) if (f.id === id) pts.push({ t: f.t, v: f.p });
+  pts.sort((x, y) => x.t - y.t);
+  const tMax = pts.length ? pts[pts.length - 1].t : Date.now();
+  const days = state.range === 'all' ? 1e9 : +state.range, tMin = tMax - days * DAY;
+  const shown = pts.filter(p => p.t >= tMin);
+  let anchors = [];
+  if (c.cm && c.cm.a1 > 0 && price && seriesOf(id).length < 5) {
+    const k = price / c.cm.a1;
+    anchors = [[30, c.cm.a30], [7, c.cm.a7], [1, c.cm.a1]].filter(a => a[1] > 0).map(([d, v]) => ({ t: tMax - d * DAY, v: v * k })).filter(a => a.t >= tMin);
+  }
+  const all = shown.concat(anchors);
+  if (all.length < 2) return { html: '<div class="empty">Not enough history yet — PokeTicker adds one point per day (plus every live price change).</div>', ctx: null };
+  const W = 640, H = 220, L = 52, R = 10, T = 10, B = 22;
+  const t0 = Math.min(...all.map(p => p.t)), t1 = Math.max(...all.map(p => p.t)) || t0 + 1;
+  let lo = Math.min(...all.map(p => p.v)), hi = Math.max(...all.map(p => p.v)); const pad = (hi - lo) * 0.08 || hi * 0.05 || 1; lo -= pad; hi += pad;
+  const X = t => L + (t - t0) / ((t1 - t0) || 1) * (W - L - R), Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const line = a => a.map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
+  const up = shown.length > 1 ? shown[shown.length - 1].v >= shown[0].v : true, col = up ? 'var(--up)' : 'var(--down)';
+  const fmtD = t => new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const html = `<div class="chartbox"><svg class="chart" id="chart" viewBox="0 0 ${W} ${H}">
+    ${[0, 0.5, 1].map(f => { const v = lo + (hi - lo) * f; return `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${usd(v)}</text>`; }).join('')}
+    <text x="${L}" y="${H - 6}">${fmtD(t0)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${fmtD(t1)}</text>
+    ${anchors.length ? `<path d="${line(anchors)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>` : ''}
+    ${shown.length > 1 ? `<path d="${line(shown)}" fill="none" stroke="${col}" stroke-width="2.2"/>` : ''}
+    ${shown.length <= 60 ? shown.map(p => `<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="2.6" fill="${col}"/>`).join('') : ''}
+    <circle id="cdot" r="4.5" fill="var(--accent)" cx="-10" cy="-10"/></svg><div class="tip" id="ctip"></div></div>
+    ${anchors.length ? '<div class="sub2">Dashed line: Cardmarket 30-day → 7-day → 1-day averages (shape only, scaled to today’s price) until PokeTicker has built up its own history.</div>' : ''}`;
+  return { html, ctx: { pts: all, X, Y, W } };
+}
+function renderDrawer() {
+  const el = $('drawer'), scrim = $('scrim');
+  if (!state.sel || !state.cards[state.sel]) { el.classList.remove('open'); scrim.classList.remove('show'); state.sel = null; return; }
+  const id = state.sel, c = state.cards[id], price = latestPrice(id), pf = price != null ? perfOf(id, price, c) : { d1: null, d7: null, d30: null, pts: [] };
+  const hist = pf.pts.map(p => p.v), hiP = hist.length ? Math.max(...hist) : null, loP = hist.length ? Math.min(...hist) : null;
+  const ch = buildChart(id, price, c); chartCtx = ch.ctx;
+  const pr = c.pr || {}, cm = c.cm;
+  const sameRar = Object.values(state.cards).filter(x => x.sid === c.sid && x.r === c.r).length;
+  const big = (c.img || '').replace(/\/small$/, '/large');
+  const pops = (state.pop[id] || []).slice().sort((x, y) => y.d.localeCompare(x.d) || x.grader.localeCompare(y.grader));
+  const lastGrader = pops.length ? pops[0].grader : 'PSA';
+  const g10series = pops.filter(p => p.grader === lastGrader).reverse().map(p => p.g10);
+  const popRows = pops.map((p, i) => {
+    const prior = pops.slice(i + 1).find(q => q.grader === p.grader);
+    const gem = p.total ? p.g10 / p.total * 100 : null, d10 = prior ? p.g10 - prior.g10 : null;
+    return `<tr><td>${esc(p.d)}</td><td>${esc(p.grader)}</td><td class="num">${p.g10}</td><td class="num">${p.g9}</td><td class="num">${p.g8}</td><td class="num">${p.total}</td><td class="num">${gem != null ? gem.toFixed(1) + '%' : '—'}</td><td class="num ${d10 > 0 ? 'down' : 'flat'}">${d10 != null ? (d10 > 0 ? '+' : '') + d10 : '—'}</td><td><a href="#" data-popdel="${esc(p.d)}|${esc(p.grader)}" style="color:var(--down)">✕</a></td></tr>`;
+  }).join('');
+  el.innerHTML = `<div class="dhead"><img src="${esc(big)}" alt="">
+      <div><h3>${esc(c.n)}</h3><div class="sub2">${esc(ticker(id, c))} · ${esc(c.s)} · #${esc(c.num)}</div>
+        <span class="pill">${esc(c.r || 'n/a')}</span><span class="pill">${esc(eraOfCard(c))}</span>${pr.v ? `<span class="pill">${esc(pr.v)}</span>` : ''}
+        <div style="margin-top:8px"><span class="star${live.watch.includes(id) ? ' on' : ''}" data-id="${esc(id)}" role="button">${live.watch.includes(id) ? '★ Watching' : '☆ Watch'}</span></div></div>
+      <button class="xbtn" id="dclose" title="Close (Esc)">✕</button></div>
+    <div class="big2">${usd(price)}</div>
+    <div><span class="pill">1D ${chgCell(pf.d1)}</span><span class="pill">7D ${chgCell(pf.d7)}</span><span class="pill">30D ${chgCell(pf.d30)}</span></div>
+    <div class="rangebtns">${[['7', '7D'], ['30', '30D'], ['all', 'All']].map(([k, l]) => `<button data-range="${k}" class="${state.range === k ? 'active' : ''}">${l}</button>`).join('')}</div>
+    ${ch.html}
+    ${outlookSection(id, c, price, pf)}
+    <div class="dsec"><h4>Quote</h4><table>
+      <tr><th>TCGplayer (USD)</th><th class="num">Low</th><th class="num">Mid</th><th class="num">Market</th><th class="num">High</th></tr>
+      <tr><td>${esc(pr.v || 'best variant')}</td><td class="num">${usd(pr.l)}</td><td class="num">${usd(pr.m)}</td><td class="num">${usd(price)}</td><td class="num">${usd(pr.h)}</td></tr></table>
+      ${cm ? `<table style="margin-top:8px"><tr><th>Cardmarket (EUR)</th><th class="num">1-day avg</th><th class="num">7-day avg</th><th class="num">30-day avg</th><th class="num">Trend</th></tr>
+      <tr><td>Europe</td><td class="num">${cm.a1 != null ? '€' + cm.a1.toFixed(2) : '—'}</td><td class="num">€${(cm.a7 || 0).toFixed(2)}</td><td class="num">${cm.a30 != null ? '€' + cm.a30.toFixed(2) : '—'}</td><td class="num">${cm.t != null ? '€' + cm.t.toFixed(2) : '—'}</td></tr></table>` : ''}
+      <div class="sub2" style="margin-top:8px">Since PokeTicker began tracking: high ${usd(hiP)} · low ${usd(loP)} · ${hist.length} daily point${hist.length === 1 ? '' : 's'}.${hist.length < 2 ? ' 1D/7D/30D above are estimated from Cardmarket averages until there’s more history.' : ''} Low-to-market spread: ${pr.l && price ? pct((price - pr.l) / pr.l * 100) : '—'}.</div></div>
+    <div class="dsec"><h4>Population</h4>
+      <div class="stat"><b>${sameRar}</b>${esc(c.r || 'cards')} in this set</div>
+      <div class="stat"><b>${pops.length ? pops.filter(p => p.grader === lastGrader)[0].g10 : '—'}</b>${esc(lastGrader)} 10s (latest entry)</div>
+      <div class="stat"><b>${pops.length && pops[0].total ? (pops[0].g10 / pops[0].total * 100).toFixed(1) + '%' : '—'}</b>gem rate</div>
+      ${spark(g10series, 'var(--down)')}
+      <div class="sub2" style="margin-top:8px">Graded population has no free public data feed, so enter it from the PSA / CGC / BGS pop report (or your Card Ladder / Collectr card page). Each dated entry builds a supply trend — rising pop with flat price is a warning sign; flat pop with rising price is scarcity.
+        <a href="https://www.psacard.com/pop/tcg-cards/" target="_blank" rel="noopener" style="color:var(--accent)">Open PSA Pop Report ↗</a></div>
+      <div class="popform"><select id="pgr"><option>PSA</option><option>CGC</option><option>BGS</option></select>
+        <input type="number" id="p10" min="0" placeholder="Gem 10 pop"><input type="number" id="p9" min="0" placeholder="Grade 9 pop"><input type="number" id="p8" min="0" placeholder="8 &amp; lower pop"><input type="number" id="ptot" min="0" placeholder="Total (optional)">
+        <button id="psave" class="primary">Save today’s pop</button></div>
+      ${pops.length ? `<table><tr><th>Date</th><th>Grader</th><th class="num">10</th><th class="num">9</th><th class="num">≤8</th><th class="num">Total</th><th class="num">Gem</th><th class="num">Δ10</th><th></th></tr>${popRows}</table>` : ''}</div>
+    ${compSection(id, c)}
+    <div class="dsec">${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener" style="color:var(--accent)">View on TCGplayer ↗</a>` : ''}</div>`;
+  el.classList.add('open'); scrim.classList.add('show');
+  wireCompSection(el, id, c);
+  el.querySelector('#dclose').onclick = closeCard;
+  el.querySelectorAll('[data-range]').forEach(b => b.onclick = () => { state.range = b.dataset.range; renderDrawer(); });
+  el.querySelectorAll('[data-popdel]').forEach(a2 => a2.onclick = e => {
+    e.preventDefault(); const [d, g] = a2.dataset.popdel.split('|');
+    state.pop[id] = (state.pop[id] || []).filter(p => !(p.d === d && p.grader === g)); store.set('pt_pop', state.pop); renderDrawer();
+  });
+  el.querySelector('#psave').onclick = () => {
+    const n = k => Math.max(0, parseInt(el.querySelector('#' + k).value, 10) || 0);
+    const g10 = n('p10'), g9 = n('p9'), g8 = n('p8'); const total = n('ptot') || (g10 + g9 + g8);
+    if (!total) { toast('Enter at least one population number.'); return; }
+    const grader = el.querySelector('#pgr').value;
+    const list = (state.pop[id] || []).filter(p => !(p.d === today() && p.grader === grader));
+    list.push({ d: today(), grader, g10, g9, g8, total }); state.pop[id] = list; store.set('pt_pop', state.pop); renderDrawer();
+  };
+  const svg = el.querySelector('#chart');
+  if (svg && chartCtx) svg.addEventListener('mousemove', e => {
+    const r = svg.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * chartCtx.W;
+    let best = chartCtx.pts[0]; for (const p of chartCtx.pts) if (Math.abs(chartCtx.X(p.t) - x) < Math.abs(chartCtx.X(best.t) - x)) best = p;
+    const dot = svg.querySelector('#cdot'), tip = el.querySelector('#ctip');
+    dot.setAttribute('cx', chartCtx.X(best.t)); dot.setAttribute('cy', chartCtx.Y(best.v));
+    tip.textContent = `${new Date(best.t).toLocaleDateString()} · ${usd(best.v)}`; tip.style.opacity = 1;
+  });
+}
+function openCard(id) { state.sel = id; renderDrawer(); }
+function closeCard() { state.sel = null; renderDrawer(); }
+
+// ---------- portfolio (what you own, what you paid, up/down) ----------
+function prevPrice(id) {
+  const ds = Object.keys(state.snaps).sort(); let seen = 0;
+  for (let i = ds.length - 1; i >= 0; i--) { const v = state.snaps[ds[i]][id]; if (v != null && ++seen === 2) return v; }
+  return null;
+}
+// value of one lot: your sold comps first (unless you pinned a value), then a typed/imported value, then the live TCGplayer price
+function lotVal(l) {
+  if (!l.pin) { const f = fairValue(l, l.grade); if (f && !f.stale) return { v: f.fv, src: 'comps', n: f.used }; }
+  if (l.val != null) return { v: l.val, src: 'manual' };
+  if (l.cardId) { const p = latestPrice(l.cardId); if (p != null) return { v: p, src: 'live' }; }
+  return { v: null, src: null };
+}
+const lotValue = l => lotVal(l).v;
+function lotEra(l) { const c = l.cardId && state.cards[l.cardId]; return c ? eraOfCard(c) : (l.kind === 'sealed' ? 'Sealed product' : 'Other / unlinked'); }
+function portSummary() {
+  let value = 0, invested = 0, plCost = 0, plVal = 0, day = 0, dayBase = 0, unpriced = 0, noCost = 0;
+  const rows = port.lots.map(l => {
+    const lv = lotVal(l), v = lv.v, hasCost = l.cost != null, costT = (l.cost || 0) * l.qty, valT = v == null ? null : v * l.qty;
+    if (valT == null) unpriced++; else value += valT;
+    if (hasCost) invested += costT; else noCost++;
+    if (valT != null && hasCost) { plCost += costT; plVal += valT; }
+    let dchg = null;
+    if (lv.src === 'live' && l.cardId) { const pp = prevPrice(l.cardId), cp = latestPrice(l.cardId); if (pp != null && cp != null) { dchg = (cp - pp) * l.qty; day += dchg; dayBase += pp * l.qty; } }
+    const pl = valT != null && hasCost ? valT - costT : null;
+    return { l, v, src: lv.src, n: lv.n, costT, valT, pl, plPct: pl != null && costT > 0 ? pl / costT * 100 : null, dchg };
+  });
+  const realized = port.sales.reduce((t, s) => t + (s.cost != null ? (s.price - s.cost) * s.qty : 0), 0);
+  return { rows, value, invested, unreal: plVal - plCost, unrealPct: plCost > 0 ? (plVal - plCost) / plCost * 100 : null, day, dayPct: dayBase > 0 ? day / dayBase * 100 : null, realized, unpriced, noCost };
+}
+function recordPort(s) {
+  if (!port.lots.length) return; s = s || portSummary();
+  const last = port.hist[port.hist.length - 1];
+  if (last && last.d === today() && last.value === s.value && last.invested === s.invested) return;
+  port.hist = port.hist.filter(x => x.d !== today()); port.hist.push({ d: today(), value: Math.round(s.value * 100) / 100, invested: Math.round(s.invested * 100) / 100 });
+  port.hist = port.hist.slice(-1500); savePort();
+}
+function histChart(h) {
+  if (h.length < 2) return '<div class="sub2">The value-over-time chart appears after your second day of data — PokeTicker records your portfolio value each day it’s open.</div>';
+  const W = 640, H = 170, L = 58, R = 10, T = 10, B = 22, ts = h.map(x => new Date(x.d + 'T12:00:00').getTime());
+  const t0 = ts[0], t1 = ts[ts.length - 1] || t0 + 1, vals = h.flatMap(x => [x.value, x.invested]).filter(v => v > 0);
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.1 || hi * 0.1 || 1; lo = Math.max(0, lo - pad); hi += pad;
+  const X = i => L + (ts[i] - t0) / ((t1 - t0) || 1) * (W - L - R), Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const path = k => h.map((x, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(x[k]).toFixed(1)}`).join('');
+  const up = h[h.length - 1].value >= h[h.length - 1].invested;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}">${[0, 0.5, 1].map(f => { const v = lo + (hi - lo) * f; return `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${usd(v)}</text>`; }).join('')}
+    <text x="${L}" y="${H - 6}">${h[0].d}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${h[h.length - 1].d}</text>
+    <path d="${path('invested')}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <path d="${path('value')}" fill="none" stroke="${up ? 'var(--up)' : 'var(--down)'}" stroke-width="2.2"/></svg>
+    <div class="sub2">Solid: current value · Dashed: amount invested</div>`;
+}
+function download(name, text, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/plain' })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+const csvCell = x => { const s = String(x ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+
+function renderPortfolio(v) {
+  trackedIdx = null;
+  const s = portSummary(); recordPort(s);
+  const sg = n => n == null ? 'flat' : n > 0 ? 'up' : n < 0 ? 'down' : 'flat', sgn = n => (n > 0 ? '+' : n < 0 ? '−' : '') + usd(Math.abs(n));
+  const sorted = [...s.rows].sort((x, y) => (y.valT ?? -1) - (x.valT ?? -1));
+  const byEra = {}; s.rows.forEach(r => { if (r.valT != null) byEra[lotEra(r.l)] = (byEra[lotEra(r.l)] || 0) + r.valT; });
+  const alloc = Object.entries(byEra).sort((x, y) => y[1] - x[1]);
+  const topShare = sorted.length && s.value ? Math.max(0, ...sorted.map(r => (r.valT || 0))) / s.value * 100 : 0;
+  const warns = [];
+  if (topShare > 35 && sorted.length > 1) warns.push(`One position is ${topShare.toFixed(0)}% of your portfolio — consider how much risk that is.`);
+  if (s.unpriced) warns.push(`${s.unpriced} item${s.unpriced === 1 ? ' has' : 's have'} no price (not tracked or no value entered) and ${s.unpriced === 1 ? 'is' : 'are'} left out of totals. Use ✎ to enter a value.`);
+  if (s.noCost) warns.push(`${s.noCost} item${s.noCost === 1 ? ' has' : 's have'} no cost basis, so ${s.noCost === 1 ? 'it is' : 'they are'} left out of profit/loss. Use ✎ to add what you paid.`);
+  const tiles = `<div class="grid" style="margin-bottom:14px">
+    <div class="tile"><div class="lbl">Current value</div><div class="big">${usd(s.value)}</div><div class="lbl">${port.lots.length} lot${port.lots.length === 1 ? '' : 's'}</div></div>
+    <div class="tile"><div class="lbl">Total invested</div><div class="big">${usd(s.invested)}</div><div class="lbl">cost basis of items with a cost</div></div>
+    <div class="tile"><div class="lbl">Unrealized profit / loss</div><div class="big ${sg(s.unreal)}">${sgn(s.unreal)}</div><div class="lbl ${sg(s.unrealPct)}">${pct(s.unrealPct)}</div></div>
+    <div class="tile"><div class="lbl">Today</div><div class="big ${sg(s.day)}">${sgn(s.day)}</div><div class="lbl ${sg(s.dayPct)}">${pct(s.dayPct)}</div></div>
+    <div class="tile"><div class="lbl">Realized (sold)</div><div class="big ${sg(s.realized)}">${sgn(s.realized)}</div><div class="lbl">${port.sales.length} sale${port.sales.length === 1 ? '' : 's'}</div></div>
+    <div class="tile"><div class="lbl">Total return</div><div class="big ${sg(s.unreal + s.realized)}">${sgn(s.unreal + s.realized)}</div><div class="lbl">unrealized + realized</div></div></div>`;
+  const lotRows = sorted.map(r => {
+    const l = r.l, c = l.cardId && state.cards[l.cardId], pf = c && r.src === 'live' && r.v != null ? perfOf(l.cardId, r.v, c) : null;
+    const chips = [];
+    if (pf && pf.d7 != null && pf.d7 > 25) chips.push('<span class="pill up">▲ hot +' + pf.d7.toFixed(0) + '% 7D — consider taking profit?</span>');
+    if (r.plPct != null && r.plPct <= -20) chips.push('<span class="pill down">underwater ' + pct(r.plPct) + '</span>');
+    if (l.cost == null) chips.push('<span class="pill">no cost basis</span>');
+    if (r.v == null) chips.push('<span class="pill">no price</span>');
+    const held = l.date ? Math.max(0, Math.round((Date.now() - new Date(l.date + 'T12:00:00').getTime()) / DAY)) : null;
+    const ed = port.edit && port.edit.uid === l.uid ? port.edit : null;
+    let form = '';
+    if (ed && ed.mode === 'sell') form = `<tr><td colspan="9"><div class="popform">Sell: <input type="number" id="sq" min="0" step="1" value="${l.qty}" title="quantity"><input type="number" id="sp" min="0" step="0.01" value="${r.v ?? ''}" placeholder="price each"><input type="date" id="sd" value="${today()}"><button class="primary" data-p="sellok" data-uid="${l.uid}">Record sale</button><button data-p="cancel">Cancel</button></div></td></tr>`;
+    if (ed && ed.mode === 'edit') form = `<tr><td colspan="9"><div class="popform">Edit: <input type="number" id="eq" min="0" step="1" value="${l.qty}" title="quantity"><input type="number" id="ec" min="0" step="0.01" value="${l.cost ?? ''}" placeholder="cost each"><input type="number" id="ev" min="0" step="0.01" value="${l.val ?? ''}" placeholder="value override (locks it; blank = use comps/live)" style="width:230px"><input type="text" id="eg" value="${esc(l.grade || '')}" placeholder="grade / condition" style="width:150px"><button class="primary" data-p="editok" data-uid="${l.uid}">Save</button><button data-p="cancel">Cancel</button></div></td></tr>`;
+    return `<tr ${l.cardId ? `data-open="${esc(l.cardId)}" style="cursor:pointer"` : ''}><td><b>${esc(l.name)}</b>${l.grade ? ` <span class="pill">${esc(l.grade)}</span>` : ''}<div class="sub2" style="margin:0">${esc(l.set || '')} · ${esc(l.src)}${l.kind === 'sealed' ? ' · sealed' : ''}${held != null ? ` · held ${held}d` : ''}</div>${chips.join(' ')}</td>
+      <td class="num">${l.qty}</td><td class="num">${l.cost != null ? usd(l.cost) : `<input type="number" class="costin" min="0" step="0.01" placeholder="paid ea." data-uid="${l.uid}" style="width:84px;padding:3px 6px">`}</td><td class="num">${usd(r.v)}${r.src === 'comps' ? `<span class="up" title="fair value from your ${r.n} sold comp${r.n === 1 ? '' : 's'}"> ◆${r.n}</span>` : r.src === 'manual' ? '<span class="flat" title="manual / imported value"> ✎</span>' : ''}</td><td class="num"><b>${usd(r.valT)}</b></td>
+      <td class="num ${sg(r.pl)}">${r.pl != null ? sgn(r.pl) : '—'}</td><td class="num ${sg(r.plPct)}">${pct(r.plPct)}</td>
+      <td style="white-space:nowrap"><a href="#" data-p="edit" data-uid="${l.uid}" title="Edit cost / value">✎</a> <a href="#" data-p="sell" data-uid="${l.uid}" title="Record a sale">Sell</a> <a href="#" data-p="del" data-uid="${l.uid}" style="color:var(--down)" title="Delete">✕</a></td></tr>${form}`;
+  }).join('');
+  v.innerHTML = '<p class="intro">Everything you own, what you paid, and whether you’re up or down. Add a card below, or import your Collectr file at the bottom.</p>' + tiles + (warns.length ? `<div class="sub2">${warns.map(w => '⚠ ' + esc(w)).join('<br>')}</div>` : '') +
+    `<div class="cols"><div><h2>Portfolio value over time</h2>${histChart(port.hist)}</div>
+      <div><h2>Where your money is</h2>${alloc.length ? alloc.map(([k, val]) => `<div style="margin:6px 0"><div style="display:flex;justify-content:space-between"><span>${esc(k)}</span><span class="flat">${usd(val)} · ${(val / s.value * 100).toFixed(0)}%</span></div><div style="background:var(--panel2);border-radius:4px;height:8px"><div style="width:${(val / s.value * 100).toFixed(1)}%;height:8px;border-radius:4px;background:var(--accent)"></div></div></div>`).join('') : '<div class="empty">Add something you own to see this.</div>'}</div></div>
+    <div class="dsec"><h2>Add to your portfolio</h2>
+      <div class="popform"><select id="pkind"><option value="card">Card</option><option value="sealed">Sealed product</option><option value="other">Other</option></select>
+        <input type="text" id="pq" placeholder="Search a tracked card, or type any item name" style="flex:1;min-width:240px" autocomplete="off">
+        <input type="number" id="pqty" min="1" step="1" value="1" title="Quantity" style="width:70px">
+        <input type="number" id="pcost" min="0" step="0.01" placeholder="Paid each ($)">
+        <input type="date" id="pdate" value="${today()}">
+        <input type="text" id="pgrade" placeholder="Grade / condition" style="width:140px">
+        <input type="number" id="pval" min="0" step="0.01" placeholder="Value each (needed if not a tracked card)">
+        <button class="primary" id="padd">Add</button></div>
+      <div class="searchres" id="pres"></div><div class="sub2" id="plinked"></div></div>
+    <div class="dsec"><h2>Your holdings ${s.noCost ? `<span style="font-size:12px;font-weight:400" class="flat">— type what you paid in the “Paid ea.” boxes (Tab moves to the next) or <a href="#" data-p="zerocost" style="color:var(--accent)">mark all missing as $0</a></span>` : ''}</h2>${sorted.length ? `<table><tr><th>Item</th><th class="num">Qty</th><th class="num">Paid ea.</th><th class="num">Value ea.</th><th class="num">Value</th><th class="num">P/L</th><th class="num">P/L %</th><th></th></tr>${lotRows}</table>` : '<div class="empty">Nothing here yet. Add what you own above, or import a Collectr / Card Ladder CSV below.</div>'}
+      ${port.msg ? `<p class="sub2">${esc(port.msg)}</p>` : ''}</div>
+    ${port.sales.length ? `<div class="dsec"><h2>Sales <a href="#" data-p="togglesales" style="font-size:12px;color:var(--accent)">${port.showSales ? 'hide' : 'show'}</a></h2>${port.showSales ? `<table><tr><th>Date</th><th>Item</th><th class="num">Qty</th><th class="num">Paid</th><th class="num">Sold</th><th class="num">Profit</th></tr>${[...port.sales].reverse().slice(0, 50).map(x => `<tr><td>${esc(x.date)}</td><td>${esc(x.name)}</td><td class="num">${x.qty}</td><td class="num">${x.cost != null ? usd(x.cost) : '—'}</td><td class="num">${usd(x.price)}</td><td class="num ${x.cost != null ? sg(x.price - x.cost) : 'flat'}">${x.cost != null ? sgn((x.price - x.cost) * x.qty) : '—'}</td></tr>`).join('')}</table>` : ''}</div>` : ''}
+    <div class="dsec"><h2>Import &amp; backup</h2>
+      <div class="drop" id="drop"><div style="margin-bottom:8px">Import a Collectr / Card Ladder CSV — drop it here or choose a file (re-importing replaces that source’s items)</div>
+        <select id="csrc"><option>Collectr</option><option>Card Ladder</option><option>Other</option></select> <input type="file" id="cfile" accept=".csv,.tsv,.txt"></div>
+      <div class="popform"><button id="pexport">Export holdings (CSV)</button><button id="pbackup">Back up everything (JSON)</button><label class="sub2" style="margin:0">Restore backup: <input type="file" id="prestore" accept=".json"></label></div>
+      <p class="note">Everything is stored only on this computer. Back up regularly — if Windows or the browser clears app data, your holdings go with it. Imported “cost” and “value” columns are read as per-item prices. Cards that match a tracked card get live prices; imported values stay as the file stated until you re-import.</p></div>`;
+  wirePortfolio(v);
+}
+function wirePortfolio(v) {
+  const refreshAll = () => { savePort(); recordPort(); render(); };
+  v.querySelectorAll('[data-p]').forEach(el => el.onclick = e => {
+    e.preventDefault(); e.stopPropagation();
+    const act = el.dataset.p, id = el.dataset.uid, lot = port.lots.find(l => l.uid === id);
+    if (act === 'edit' || act === 'sell') { port.edit = { uid: id, mode: act }; render(); }
+    else if (act === 'cancel') { port.edit = null; render(); }
+    else if (act === 'togglesales') { port.showSales = !port.showSales; render(); }
+    else if (act === 'zerocost') {
+      if (confirm('Mark every item with no cost as $0 paid (e.g. pulled from packs you already counted elsewhere)? You can still edit any of them.')) { port.lots.forEach(l => { if (l.cost == null) l.cost = 0; }); refreshAll(); }
+    }
+    else if (act === 'del' && lot) { if (confirm(`Remove “${lot.name}” from your portfolio? (This doesn’t record a sale.)`)) { port.lots = port.lots.filter(l => l.uid !== id); port.edit = null; refreshAll(); } }
+    else if (act === 'editok' && lot) {
+      const q = parseFloat(v.querySelector('#eq').value), c = v.querySelector('#ec').value, val = v.querySelector('#ev').value;
+      if (q > 0) lot.qty = q; lot.cost = c === '' ? null : +c; lot.val = val === '' ? null : +val; lot.pin = val !== ''; lot.grade = v.querySelector('#eg').value.trim();
+      port.edit = null; refreshAll();
+    } else if (act === 'sellok' && lot) {
+      const q = parseFloat(v.querySelector('#sq').value), p = parseFloat(v.querySelector('#sp').value), d = v.querySelector('#sd').value || today();
+      if (!(q > 0) || q > lot.qty || !(p >= 0)) { toast(`Enter a quantity up to ${lot.qty} and a sale price.`); return; }
+      port.sales.push({ uid: uid(), name: lot.name, qty: q, cost: lot.cost, price: p, date: d, src: lot.src });
+      lot.qty -= q; if (lot.qty <= 0) port.lots = port.lots.filter(l => l.uid !== id);
+      port.edit = null; port.msg = `Recorded sale of ${q} × ${lot.name} at ${usd(p)}.`; refreshAll();
+    }
+  });
+  const costIns = [...v.querySelectorAll('.costin')];
+  costIns.forEach((inp, idx) => {
+    inp.onclick = e => e.stopPropagation();
+    inp.onchange = () => {
+      if (inp.value === '') return;
+      const lot = port.lots.find(l => l.uid === inp.dataset.uid); if (!lot) return;
+      lot.cost = Math.max(0, +inp.value); port.focusIdx = idx; refreshAll();
+    };
+  });
+  if (port.focusIdx != null) { const n = v.querySelectorAll('.costin')[port.focusIdx]; port.focusIdx = null; if (n) n.focus(); }
+  const pq = v.querySelector('#pq'), res = v.querySelector('#pres');
+  pq.oninput = () => {
+    port.form.cardId = null; v.querySelector('#plinked').textContent = '';
+    const q = pq.value.trim().toLowerCase(); if (q.length < 2 || !lastA) { res.innerHTML = ''; return; }
+    const hits = lastA.rows.filter(r => (r.c.n + ' ' + r.c.s + ' ' + r.c.num).toLowerCase().includes(q)).sort((x, y) => y.price - x.price).slice(0, 8);
+    res.innerHTML = hits.map(r => `<a class="row" href="#" data-pick="${esc(r.id)}"><img src="${esc(r.c.img || '')}" alt=""><div class="info"><div class="name">${esc(r.c.n)}</div><div class="sub">${esc(r.c.s)} · #${esc(r.c.num)} · ${esc(r.c.r || '')}</div></div><div class="px"><b>${usd(r.price)}</b></div></a>`).join('') || '<div class="empty">No tracked card matches — you can still add it as a custom item with a value.</div>';
+    res.querySelectorAll('[data-pick]').forEach(a2 => a2.onclick = e2 => {
+      e2.preventDefault(); const c = state.cards[a2.dataset.pick];
+      port.form.cardId = a2.dataset.pick; pq.value = `${c.n} — ${c.s} #${c.num}`; res.innerHTML = '';
+      v.querySelector('#plinked').textContent = `Linked to the live price (${usd(latestPrice(a2.dataset.pick))}). Leave “Value each” blank to use it.`;
+    });
+  };
+  v.querySelector('#padd').onclick = () => {
+    const cardId = port.form.cardId, c = cardId && state.cards[cardId], name = c ? c.n : pq.value.trim();
+    const qty = parseFloat(v.querySelector('#pqty').value) || 1, cost = v.querySelector('#pcost').value, val = v.querySelector('#pval').value;
+    if (!name) { toast('Type or pick an item first.'); return; }
+    if (!cardId && val === '') { toast('Items that aren’t tracked cards need a “Value each” so they can be valued.'); return; }
+    port.lots.push({ uid: uid(), cardId: cardId || null, name, set: c ? c.s : '', num: c ? c.num : '', grade: v.querySelector('#pgrade').value.trim(), qty, cost: cost === '' ? null : +cost, val: val === '' ? null : +val,
+      date: v.querySelector('#pdate').value || today(), src: 'Manual', kind: v.querySelector('#pkind').value });
+    port.form.cardId = null; port.msg = `Added ${qty} × ${name}.`; savePort(); recordPort(); render();
+  };
+  const doImport = async file => {
+    try { const r = await importCsv(await file.text(), v.querySelector('#csrc').value, file.name); port.msg = `Imported ${r.n} rows from ${file.name} (columns used: ${Object.values(r.mapped).join(', ')}).`; recordPort(); }
+    catch (e) { port.msg = 'Import failed: ' + e.message; }
+    render();
+  };
+  v.querySelector('#cfile').onchange = e => e.target.files[0] && doImport(e.target.files[0]);
+  const dz = v.querySelector('#drop');
+  ['dragover', 'dragenter'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+  dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) doImport(f); });
+  v.querySelector('#pexport').onclick = () => {
+    const s = portSummary(); const head = ['Item', 'Set', 'Number', 'Grade/Condition', 'Type', 'Qty', 'Paid each', 'Value each', 'Value total', 'Profit/Loss', 'Source', 'Date bought'];
+    download('poketicker-holdings.csv', [head, ...s.rows.map(r => [r.l.name, r.l.set, r.l.num, r.l.grade, r.l.kind, r.l.qty, r.l.cost ?? '', r.v ?? '', r.valT ?? '', r.pl ?? '', r.l.src, r.l.date])].map(row => row.map(csvCell).join(',')).join('\n'), 'text/csv');
+  };
+  v.querySelector('#pbackup').onclick = () => download(`poketicker-backup-${today()}.json`, JSON.stringify({ app: 'poketrends', v: 1, lots: port.lots, sales: port.sales, hist: port.hist, pop: state.pop, watch: live.watch, extra: state.extra, comps: comps.list }), 'application/json');
+  v.querySelector('#prestore').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const j = JSON.parse(await f.text()); if (j.app !== 'poketrends') throw new Error('not a PokeTicker backup');
+      if (!confirm('Replace your current holdings, sales and notes with this backup?')) return;
+      port.lots = j.lots || []; port.sales = j.sales || []; port.hist = j.hist || []; if (j.comps) { comps.list = j.comps; saveComps(); } if (j.pop) { state.pop = j.pop; store.set('pt_pop', state.pop); }
+      if (j.watch) { live.watch = j.watch; saveLive(); } if (j.extra) { state.extra = j.extra; saveCore(); }
+      savePort(); port.msg = 'Backup restored.';
+    } catch (err) { port.msg = 'Restore failed: ' + err.message; }
+    render();
+  };
+}
+
+// ---------- deals finder ----------
+const fx = { rate: store.get('pt_fx', null) };   // {rate, date}: EUR -> USD
+async function loadFx() {
+  if (fx.rate && fx.rate.date === today()) return;
+  for (const [url, pick] of [['https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD', j => j.rates && j.rates.USD], ['https://open.er-api.com/v6/latest/EUR', j => j.rates && j.rates.USD]]) {
+    try { const r = pick(await getJson(url, 2)); if (r > 0) { fx.rate = { rate: r, date: today() }; store.set('pt_fx', fx.rate); break; } } catch (e) { /* try next */ }
+  }
+  if (state.tab === 'deals') render();
+}
+function scoreDeal(r) {
+  const c = r.c, pf = perfOf(r.id, r.price, c), why = []; let score = 0;
+  const { d1, d7, d30 } = pf;
+  if (d30 != null && d30 <= -5) { score += Math.min(30, -d30); why.push(`${pct(d30)} vs 30D`); }
+  if (d30 != null && d30 <= -10 && d1 != null && d1 >= 0) { score += 10; why.push('price stabilizing'); }
+  let gapEU = null;
+  if (fx.rate && c.cm && c.cm.t > 0) { const eu = c.cm.t * fx.rate.rate; gapEU = (eu - r.price) / eu * 100; if (gapEU >= 8) { score += Math.min(25, gapEU); why.push(`US ${gapEU.toFixed(0)}% below EU price`); } }
+  let floor = null;
+  if (c.pr && c.pr.l > 0) { floor = (r.price - c.pr.l) / r.price * 100; if (floor >= 15) { score += Math.min(15, floor / 3); why.push(`listings ${floor.toFixed(0)}% under market`); } }
+  const fvc = fairValue({ cardId: r.id, name: c.n, set: c.s, num: c.num }, 'Raw');
+  if (fvc && !fvc.stale && r.price < fvc.fv * 0.92) { const gap = (fvc.fv - r.price) / fvc.fv * 100; score += Math.min(35, gap * 1.2); why.push(`${gap.toFixed(0)}% below your sold comps (${usd(fvc.fv)})`); }
+  const spike = (d1 != null && d1 > 35) || (d7 != null && d7 > 60);
+  if (spike) { score -= 30; why.push('⚠ spiking — chasing risk'); }
+  if (pf.pts.length < 3 && !c.cm) score *= 0.5;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const ol = outlook(r.id, r.price, c, pf), olScore = ol ? Math.max(0, Math.min(100, (ol[90].pct + 10) * 3)) : 0;
+  const idea = Math.max(0, Math.round(0.55 * score + 0.45 * olScore - (spike ? 20 : 0)));
+  return { ...r, pf, gapEU, floor, spike, why, score, ol, idea };
+}
+function renderDeals(v, a) {
+  const rars = [...new Set(a.rows.map(r => r.c.r).filter(Boolean))].sort(), d = state.deal;
+  v.innerHTML = `<p class="intro">Cards that look cheap compared with their recent prices, each with a rough 90-day outlook. Tap a card to see why. These are ideas to research, not promises.</p>
+    <div class="toolbar"><span>Min price $<input type="number" id="dmin" min="0" step="1" value="${d.min}"></span>
+      <select id="drar"><option value="">All rarities</option>${rars.map(e => `<option${e === d.rar ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select>
+      <select id="dsig">${[['', 'Any signal'], ['dip', 'Dips vs 30D'], ['eu', 'US cheaper than EU'], ['floor', 'Listings under market']].map(([k, l]) => `<option value="${k}"${k === d.sig ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <span>${fx.rate ? `EUR→USD ${fx.rate.rate.toFixed(4)} (${fx.rate.date})` : 'EUR→USD rate unavailable — cross-market signal off'}</span></div><div id="dealbody"></div>`;
+  $('dmin').onchange = e => { d.min = Math.max(0, +e.target.value || 0); drawDeals(); };
+  $('drar').onchange = e => { d.rar = e.target.value; drawDeals(); };
+  $('dsig').onchange = e => { d.sig = e.target.value; drawDeals(); };
+  drawDeals();
+}
+function drawDeals() {
+  const a = lastA, box = $('dealbody'); if (!a || !box) return; const d = state.deal;
+  const held = new Set(port.lots.map(l => l.cardId).filter(Boolean));
+  let rows = a.rows.filter(r => r.price >= d.min && (!d.rar || r.c.r === d.rar)).map(scoreDeal);
+  if (d.sig === 'dip') rows = rows.filter(r => r.pf.d30 != null && r.pf.d30 <= -5);
+  if (d.sig === 'eu') rows = rows.filter(r => r.gapEU != null && r.gapEU >= 8);
+  if (d.sig === 'floor') rows = rows.filter(r => r.floor != null && r.floor >= 15);
+  rows = rows.filter(r => r.idea >= 20).sort((x, y) => y.idea - x.idea);
+  box.innerHTML = `<table class="scr"><tr><th>Idea score</th><th>Card</th><th class="num">Price</th><th>90-day outlook</th><th class="hm">Why it’s flagged</th><th></th></tr>` +
+    (rows.slice(0, d.limit).map(r => { const w = r.ol ? outlookWord(r.ol[90].pct) : ['—', 'flat']; return `<tr data-open="${esc(r.id)}"><td style="width:90px"><b>${r.idea}</b><div style="background:var(--panel2);border-radius:4px;height:6px;margin-top:3px"><div style="width:${Math.min(100, r.idea)}%;height:6px;border-radius:4px;background:${r.spike ? 'var(--down)' : 'var(--up)'}"></div></div></td>
+      <td><img loading="lazy" src="${esc(r.c.img || '')}" alt=""><b>${esc(r.c.n)}</b>${held.has(r.id) ? ' <span class="pill">owned</span>' : ''}<div class="sub2" style="margin:0">${esc(r.c.s)} · ${esc(r.c.r || '')}</div></td>
+      <td class="num"><b>${usd(r.price)}</b></td><td>${r.ol ? `<b class="${w[1]}">${w[0]}</b> ${chgCell(r.ol[90].pct)}<div class="sub2" style="margin:0">${usd(r.ol[90].lo)}–${usd(r.ol[90].hi)} typical</div>` : '—'}</td>
+      <td class="hm">${r.why.map(x => `<span class="pill">${esc(x)}</span>`).join('')}${r.spike ? '' : (r.ol && r.ol.why[0] ? `<span class="pill">${esc(r.ol.why[0])}</span>` : '')}</td>
+      <td><span class="star${live.watch.includes(r.id) ? ' on' : ''}" data-id="${esc(r.id)}" role="button">${live.watch.includes(r.id) ? '★' : '☆'}</span></td></tr>`; }).join('') || '<tr><td colspan="6"><div class="empty">Nothing stands out right now. Ideas get better as PokeTicker builds a few weeks of its own price history.</div></td></tr>') +
+    `</table>${rows.length > d.limit ? `<p style="text-align:center"><button id="dmore">Show more</button></p>` : ''}
+    <p class="note"><b>How to read this:</b> the idea score (0–100) mixes two things — signals that a card is priced below where it’s been (a drop vs its 30-day level, the US price under Europe’s, cheaper listings, or your own sold prices), and a rough 90-day outlook based on the set’s age and recent movement. Sudden spikes lose points. Tap a card for details. These are <b>research leads, not advice</b>: a price that’s falling can keep falling, the cheapest listing may be a damaged copy, and the outlook is a rule-of-thumb estimate. Check recent sold prices and condition before you buy.</p>`;
+  const more = box.querySelector('#dmore'); if (more) more.onclick = () => { d.limit += 60; drawDeals(); };
+}
+
+// ---------- outlook: rough "what if I buy today" projections ----------
+// An explainable rule-of-thumb model, not a forecast anyone can guarantee. It combines (1) how old the set is, (2) this month's movement,
+// (3) your own sold comps, (4) the US/EU price gap, and (5) how bumpy the card's price has been. Its guesses are saved and graded later (see "track record").
+const FAVS = /charizard|pikachu|umbreon|eevee|espeon|sylveon|vaporeon|jolteon|flareon|glaceon|leafeon|\bmew\b|mewtwo|gengar|lugia|rayquaza|gardevoir|greninja|lucario|mimikyu|dragonite|blastoise|venusaur|snorlax/i;
+const CHASE_RAR = /special illustration|hyper|secret|ultra|illustration rare|shiny|gold|crown|ace spec/i;
+function releaseMs(c) {
+  const s = (state.allSets || []).find(x => x.id === c.sid), d = (s && s.releaseDate) || (state.sets.find(x => x.id === c.sid) || {}).releaseDate;
+  return d ? new Date(String(d).replace(/\//g, '-') + 'T12:00:00').getTime() : null;
+}
+function lifecycle(m, chase) {   // assumed typical monthly price drift for a set of this age
+  const t = chase
+    ? [[3, -0.04, 'brand-new set — chase cards usually slide as packs get opened'], [8, -0.015, 'a few months old — prices often keep easing toward a bottom'], [14, 0.005, 'about a year old — prices often bottom out around now'], [30, 0.015, 'older set nearing the end of its print run — prices often creep up'], [9999, 0.01, 'long out-of-print set — prices tend to rise slowly']]
+    : [[3, -0.06, 'brand-new set — everyday cards usually lose value fast'], [8, -0.03, 'everyday cards keep losing value for the first months'], [14, -0.01, 'everyday cards rarely gain much'], [30, 0, 'everyday cards stay flat'], [9999, 0.003, 'everyday cards barely move']];
+  for (const [lim, d, txt] of t) if (m < lim) return { d, txt };
+}
+function outlook(id, price, c, pf) {
+  if (!(price > 0)) return null;
+  const why = [], rel = releaseMs(c), chase = CHASE_RAR.test(c.r || '') || price >= 25;
+  let drift = 0;
+  if (rel) { const lc = lifecycle(Math.max(0, (Date.now() - rel) / (30.44 * DAY)), chase); drift = lc.d; why.push(lc.txt); }
+  if (chase && FAVS.test(c.n)) { drift += 0.005; why.push('fan-favorite Pokémon'); }
+  const d30 = pf.d30 != null ? Math.max(-30, Math.min(30, pf.d30)) / 100 : 0;
+  if (Math.abs(d30) >= 0.05) why.push(d30 > 0 ? `up ${(d30 * 100).toFixed(0)}% this month — momentum can carry a bit further` : `down ${(-d30 * 100).toFixed(0)}% this month — could be an entry point, or could keep sliding`);
+  const fv = fairValue({ cardId: id, name: c.n, set: c.s, num: c.num }, 'Raw'); let pull = 0;
+  if (fv && !fv.stale) { pull = Math.max(-0.3, Math.min(0.3, (fv.fv - price) / price)) * 0.5; if (Math.abs(pull) > 0.02) why.push(`your sold prices say it’s worth about ${usd(fv.fv)}`); }
+  let eu = 0;
+  if (fx.rate && c.cm && c.cm.t > 0) { const g = (c.cm.t * fx.rate.rate - price) / price; if (g > 0.08) { eu = Math.min(g, 0.3) * 0.2; why.push('cheaper in the US than in Europe'); } }
+  let vol = chase ? 0.14 : 0.10, own = false; const pts = pf.pts || [];
+  if (pts.length >= 6) {
+    const rs = []; for (let i = 1; i < pts.length; i++) { const dt = Math.max(1, (pts[i].t - pts[i - 1].t) / DAY); if (pts[i - 1].v > 0 && pts[i].v > 0) rs.push(Math.log(pts[i].v / pts[i - 1].v) / Math.sqrt(dt)); }
+    if (rs.length >= 5) { const mean = rs.reduce((x, y) => x + y, 0) / rs.length, sd = Math.sqrt(rs.reduce((x, y) => x + (y - mean) ** 2, 0) / (rs.length - 1)); vol = Math.max(0.06, Math.min(0.5, sd * Math.sqrt(30))); own = true; }
+  }
+  const out = { why, vol, quality: own && pts.length >= 14 ? 'fair' : 'rough' };
+  for (const h of [30, 90, 180]) {
+    const mo = h / 30, mom = d30 * (h === 30 ? 0.25 : h === 90 ? 0.12 : 0.06), r = Math.pow(1 + drift, mo) - 1 + mom + (pull + eu) * (h === 30 ? 0.4 : 1), sg = vol * Math.sqrt(mo);
+    out[h] = { pct: r * 100, base: price * (1 + r), lo: price * Math.max(0.05, 1 + r - sg), hi: price * (1 + r + sg) };
+  }
+  return out;
+}
+const outlookWord = p => p >= 8 ? ['May rise', 'up'] : p <= -8 ? ['May fall', 'down'] : ['Likely flat', 'flat'];
+function outlookSection(id, c, price, pf) {
+  const o = price != null ? outlook(id, price, c, pf) : null; if (!o) return '';
+  return `<div class="dsec"><h4>Rough outlook if you buy today</h4>
+    <table><tr><th>In</th><th class="num">Likely price</th><th class="num">Change</th><th class="num">Typical range</th></tr>${[30, 90, 180].map(h => `<tr><td>${h} days</td><td class="num"><b>${usd(o[h].base)}</b></td><td class="num">${chgCell(o[h].pct)}</td><td class="num">${usd(o[h].lo)}–${usd(o[h].hi)}</td></tr>`).join('')}</table>
+    <ul style="margin:8px 0 0;padding-left:18px">${o.why.map(w => `<li class="sub2" style="margin:2px 0">${esc(w)}</li>`).join('')}</ul>
+    <div class="sub2" style="margin-top:8px">This is a rough estimate from the card’s age, this month’s movement and your own data — nobody can promise where a price goes. Estimate quality: <b>${o.quality}</b> (it improves as PokeTicker collects more days of history). The range is a normal swing; prices can land outside it.</div></div>`;
+}
+// every day the top ideas and their guesses are saved, then graded after 30 and 90 days
+const preds = { list: store.get('pt_preds', []) };
+function logPredictions(a) {
+  if (preds.list.length && preds.list[preds.list.length - 1].d === today()) return;
+  const picks = a.rows.filter(r => r.price >= 3).map(scoreDeal).sort((x, y) => y.idea - x.idea).slice(0, 40);
+  for (const r of picks) preds.list.push({ d: today(), id: r.id, p: r.price, p30: r.ol ? Math.round(r.ol[30].pct * 10) / 10 : null, p90: r.ol ? Math.round(r.ol[90].pct * 10) / 10 : null });
+  preds.list = preds.list.slice(-4000); store.set('pt_preds', preds.list);
+}
+function trackRecord() {
+  const out = { n30: 0, hit30: 0, n90: 0, hit90: 0, miss: [] }, now = Date.now();
+  for (const p of preds.list) {
+    const age = (now - new Date(p.d + 'T12:00:00').getTime()) / DAY, cur = latestPrice(p.id); if (cur == null || !(p.p > 0)) continue;
+    const act = (cur - p.p) / p.p * 100;
+    if (age >= 30 && p.p30 != null) { out.n30++; if ((p.p30 >= 0) === (act >= 0)) out.hit30++; out.miss.push(Math.abs(act - p.p30)); }
+    if (age >= 90 && p.p90 != null) { out.n90++; if ((p.p90 >= 0) === (act >= 0)) out.hit90++; }
+  }
+  out.medMiss = out.miss.length ? median(out.miss) : null; return out;
+}
+
+// ---------- Home and More screens ----------
+function renderHome(v, a) {
+  const s = portSummary(); recordPort(s);
+  const sg = n => n == null ? 'flat' : n > 0 ? 'up' : n < 0 ? 'down' : 'flat', sgn = n => (n > 0 ? '+' : n < 0 ? '−' : '') + usd(Math.abs(n));
+  const hasCards = port.lots.length > 0, stale = state.fullDate !== today();
+  const ideas = a.rows.filter(r => r.price >= 5).map(scoreDeal).filter(r => !r.spike && r.idea >= 25).sort((x, y) => y.idea - x.idea).slice(0, 3);
+  const todo = [];
+  if (!state.updated) todo.push('Tap <b>Refresh</b> (top right) to load today’s card prices. The first refresh can take a few minutes.');
+  else if (stale) todo.push(`Prices are from ${esc(state.fullDate || 'an earlier day')}. Tap <b>Refresh</b> to update them.`);
+  for (const r of s.rows) {
+    if (r.src === 'live' && r.l.cardId && state.cards[r.l.cardId] && r.v != null) { const pf = perfOf(r.l.cardId, r.v, state.cards[r.l.cardId]); if (pf.d7 != null && pf.d7 > 25) todo.push(`<b>${esc(r.l.name)}</b> is up ${pf.d7.toFixed(0)}% this week. If you want to cash in, now may be a good time.`); }
+    if (r.plPct != null && r.plPct <= -20) todo.push(`<b>${esc(r.l.name)}</b> is ${(-r.plPct).toFixed(0)}% below what you paid. Check Sold Prices for its real market value before deciding.`);
+  }
+  for (const id of live.watch) { const c = state.cards[id], p = latestPrice(id); if (!c || p == null) continue; const pf = perfOf(id, p, c); if (pf.d1 != null && Math.abs(pf.d1) >= 5) todo.push(`Watching <b>${esc(c.n)}</b>: ${pf.d1 > 0 ? 'up' : 'down'} ${Math.abs(pf.d1).toFixed(0)}% today.`); }
+  if (s.noCost) todo.push(`${s.noCost} of your cards ${s.noCost === 1 ? 'has' : 'have'} no purchase price, so your profit can’t be worked out. Add them in <a href="#" data-go="port">My Cards</a>.`);
+  const tr = trackRecord();
+  const trText = tr.n30 >= 5 ? `Of ${tr.n30} past ideas that are 30+ days old, <b>${tr.hit30}</b> moved the way PokeTicker guessed (up or down), and the average miss was ${tr.medMiss != null ? tr.medMiss.toFixed(0) : '—'} percentage points. ${tr.n90 >= 5 ? `For 90 days: ${tr.hit90} of ${tr.n90}.` : ''}`
+    : `PokeTicker is saving today’s top ideas and will grade them after 30 days. Check back here to see how good the guesses are before you trust them.`;
+  v.innerHTML = `${hasCards ? `<div class="grid" style="margin-bottom:14px">
+      <div class="tile"><div class="lbl">Your cards are worth</div><div class="big">${usd(s.value)}</div><div class="lbl">${port.lots.length} item${port.lots.length === 1 ? '' : 's'}</div></div>
+      <div class="tile"><div class="lbl">You’re ${s.unreal >= 0 ? 'up' : 'down'}</div><div class="big ${sg(s.unreal)}">${sgn(s.unreal)}</div><div class="lbl ${sg(s.unrealPct)}">${pct(s.unrealPct)} on ${usd(s.invested)} spent</div></div>
+      <div class="tile"><div class="lbl">Since yesterday</div><div class="big ${sg(s.day)}">${sgn(s.day)}</div><div class="lbl ${sg(s.dayPct)}">${pct(s.dayPct)}</div></div></div>`
+    : `<div class="todo"><b>Start here:</b> add the cards you own in <a href="#" data-go="port">My Cards</a> (or import your Collectr file there). Then Home will show what you’re worth and whether you’re up or down.</div>`}
+    <h2>Today’s buy ideas</h2><p class="intro">Cards that look cheap compared with where they’ve been, with a rough 90-day outlook. These are ideas to research, not promises.</p>
+    ${ideas.length ? ideas.map(r => { const w = outlookWord(r.ol[90].pct); return `<div class="idea" data-open="${esc(r.id)}"><img src="${esc(r.c.img || '')}" alt=""><div class="info"><b>${esc(r.c.n)}</b> <span class="flat">${esc(r.c.s)}</span><div>${usd(r.price)} now · <b class="${w[1]}">${w[0]}</b> over 90 days (${pct(r.ol[90].pct)}, typical range ${usd(r.ol[90].lo)}–${usd(r.ol[90].hi)})</div><div class="sub2" style="margin:2px 0 0">${esc((r.why[0] || r.ol.why[0] || ''))}</div></div></div>`; }).join('') + `<p><a href="#" data-go="deals" style="color:var(--accent)">See all buy ideas →</a></p>` : '<div class="empty">No standout ideas yet. Refresh prices, and give PokeTicker a few days of history to spot dips.</div>'}
+    ${todo.length ? `<h2 style="margin-top:18px">Needs your attention</h2>${todo.map(t => `<div class="todo">${t}</div>`).join('')}` : ''}
+    <h2 style="margin-top:18px">How good are the guesses?</h2><p class="intro" style="max-width:none">${trText}</p>
+    <details class="guide"${hasCards ? '' : ' open'}><summary>New here? How PokeTicker works in 3 steps</summary>
+      <ol style="padding-left:20px;margin:10px 0 0;line-height:1.6"><li><b>My Cards</b> — add what you own and what you paid. PokeTicker shows if you’re up or down.</li>
+        <li><b>Sold Prices</b> — when you see a card sell on eBay, log the price. Your logged sales become the most trustworthy price for that card.</li>
+        <li><b>Buy Ideas</b> — cards that look cheap, each with a rough 90-day outlook and the reasons behind it. Always check recent sold prices before you buy.</li></ol></details>`;
+}
+function renderMore(v) {
+  v.innerHTML = `<div class="menu">
+      <button data-go="market"><b>Market</b><span>Browse every card with its price and recent change.</span></button>
+      <button data-go="sets"><b>Eras &amp; Sets</b><span>Every set by era, with its top cards.</span></button>
+      <button data-go="live"><b>Watchlist &amp; Live Alerts</b><span>Cards you’re watching and price changes as they happen.</span></button>
+      <button data-go="port"><b>Backup &amp; Import</b><span>Back up your data or import a Collectr file (bottom of My Cards).</span></button></div>
+    <details class="guide" style="margin:0 0 18px"><summary>Put PokéTicker on your phone’s home screen</summary>
+      <p class="intro" style="max-width:none;margin-top:10px"><b>iPhone (Safari):</b> open this page in Safari, tap the Share button, then <b>Add to Home Screen</b>.<br>
+        <b>Android (Chrome):</b> tap the ⋮ menu, then <b>Install app</b> (or <b>Add to Home screen</b>).<br>
+        Your cards and history are saved on the phone itself. Use <b>My Cards → Back up everything</b> now and then, and to move data between your phone and your PC (back up on one, restore on the other).</p></details>
+    <h2>What the numbers mean</h2>
+    <p class="intro" style="max-width:none"><b>Market price</b> — what a card has recently been selling for on TCGplayer.<br><b>Fair value</b> — the middle price of the sales you logged yourself.<br><b>Outlook</b> — a rough guess of the price in 30, 90 and 180 days based on the set’s age, recent movement and your data. It can be wrong.<br><b>Idea score</b> — how strongly PokeTicker’s signals point to a card being cheap right now (0–100).<br><b>Up / down</b> — your cards’ current value compared with what you paid.</p>`;
+}
+
+// ---------- sold comps log: your own price data ----------
+const comps = { list: store.get('pt_comps', []), form: { cardId: null, name: '', set: '', num: '', grade: 'Raw' }, fee: store.get('pt_fee', 13.25), shipOut: store.get('pt_shipout', 4), msg: '' };
+function saveComps() { store.set('pt_comps', comps.list); store.set('pt_fee', comps.fee); store.set('pt_shipout', comps.shipOut); }
+const GRADES = ['Raw', 'PSA 10', 'PSA 9', 'PSA 8', 'PSA 7', 'PSA 6', 'PSA 5', 'BGS 10', 'BGS 9.5', 'BGS 9', 'CGC 10', 'CGC 9.5', 'CGC 9', 'SGC 10', 'SGC 9.5', 'TAG 10', 'ACE 10'];
+const SOURCES = ['eBay', '130point', 'Card Ladder', 'PriceCharting', 'TCGplayer', 'Whatnot', 'Local / in person', 'Other'];
+function gradeKey(g) {
+  const m = String(g || '').match(/\b(PSA|BGS|CGC|SGC|TAG|ACE)\s*(\d+(?:\.\d)?)/i);
+  return m ? `${m[1].toUpperCase()} ${m[2].replace(/\.0$/, '')}` : 'Raw';
+}
+const nkey = x => [x.name, x.set, normNum(x.num)].map(s => String(s || '').toLowerCase().trim()).join('|');
+const sameCard = (a, b) => !!((a.cardId && a.cardId === b.cardId) || nkey(a) === nkey(b));
+const median = arr => { const s = [...arr].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+// fair value = median of your most recent sold comps (last 90 days if any, otherwise the latest ones, marked stale)
+function fairValue(card, grade) {
+  if (!comps.list.length) return null;
+  const gk = gradeKey(grade), now = Date.now();
+  const all = comps.list.filter(c => gradeKey(c.grade) === gk && sameCard(card, c)).sort((x, y) => y.date.localeCompare(x.date));
+  if (!all.length) return null;
+  const recent = all.filter(c => now - new Date(c.date + 'T12:00:00').getTime() <= 90 * DAY);
+  const stale = recent.length < 1, use = (stale ? all : recent).slice(0, 7), prices = use.map(c => c.price);
+  let trend = null;
+  if (use.length >= 4) { const h = use.length >> 1, newer = median(prices.slice(0, h)), older = median(prices.slice(h)); if (older > 0) trend = (newer - older) / older * 100; }
+  return { fv: median(prices), n: all.length, used: use.length, last: all[0], lo: Math.min(...prices), hi: Math.max(...prices), trend, stale, conf: use.length >= 5 ? 'high' : use.length >= 3 ? 'medium' : 'low' };
+}
+function parseDateLoose(s) {
+  let m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+  m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`; }
+  m = s.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:,?\s*(\d{4}))?/i);
+  if (m) {
+    const mo = String('JanFebMarAprMayJunJulAugSepOctNovDec'.indexOf(m[1][0].toUpperCase() + m[1].slice(1, 3).toLowerCase()) / 3 + 1).padStart(2, '0');
+    let y = m[3] || String(new Date().getFullYear()); let iso = `${y}-${mo}-${m[2].padStart(2, '0')}`;
+    if (!m[3] && iso > today()) iso = `${+y - 1}-${mo}-${m[2].padStart(2, '0')}`;
+    return iso;
+  }
+  return null;
+}
+// "$412.50 10/15/2026 https://…" per line → [{price, date, url}]
+function parseCompLines(text) {
+  const out = [];
+  for (const raw of text.split(/\r?\n/)) {
+    let line = raw.trim(); if (!line) continue;
+    const url = (line.match(/https?:\/\/\S+/) || [''])[0]; line = line.replace(/https?:\/\/\S+/g, ' ');
+    const date = parseDateLoose(line); line = line.replace(/\d{4}-\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4}|(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(,?\s*\d{4})?/gi, ' ');
+    const pm = line.match(/\$\s*([\d,]+(?:\.\d{1,2})?)/) || line.match(/(\d[\d,]*(?:\.\d{1,2})?)/);
+    const price = pm ? parseFloat(pm[1].replace(/,/g, '')) : NaN;
+    if (price > 0) out.push({ price, date: date && date <= today() ? date : today(), url });
+  }
+  return out;
+}
+function addComp(item, grade, price, date, source, url, note) {
+  comps.list.push({ uid: uid(), cardId: item.cardId || null, name: item.name, set: item.set || '', num: item.num || '', grade: gradeKey(grade), price, date, source: source || 'Other', url: url || '', note: note || '' });
+}
+function compSection(id, c) {
+  const card = { cardId: id, name: c.n, set: c.s, num: c.num };
+  const mine = comps.list.filter(x => sameCard(card, x)).sort((a, b) => b.date.localeCompare(a.date));
+  const grades = [...new Set(mine.map(x => gradeKey(x.grade)))];
+  const fvRows = grades.map(g => { const f = fairValue(card, g); return `<tr><td>${esc(g)}</td><td class="num">${f.used}${f.n > f.used ? ' of ' + f.n : ''}</td><td class="num"><b>${usd(f.fv)}</b>${f.stale ? ' <span class="flat" title="no sale in the last 90 days">(stale)</span>' : ''}</td><td class="num">${usd(f.lo)}–${usd(f.hi)}</td><td class="num">${f.trend != null ? chgCell(f.trend) : '—'}</td></tr>`; }).join('');
+  return `<div class="dsec"><h4>Sold comps (your log)</h4>
+    ${fvRows ? `<table><tr><th>Grade</th><th class="num">Comps</th><th class="num">Fair value</th><th class="num">Range</th><th class="num">Trend</th></tr>${fvRows}</table>
+      <div class="sub2" style="margin-top:6px">${mine.slice(0, 5).map(x => `${esc(x.date)} · ${esc(gradeKey(x.grade))} · <b>${usd(x.price)}</b> · ${esc(x.source)}`).join('<br>')}</div>` : '<div class="sub2">No sold comps logged for this card yet. Look up recent sold listings (eBay sold, 130point, Card Ladder) and log them here — fair value is the median of your recent comps.</div>'}
+    <div class="popform"><select id="dgr">${GRADES.map(g => `<option>${g}</option>`).join('')}</select><input type="number" id="dpr" min="0" step="0.01" placeholder="Sold price ($)"><input type="date" id="ddt" value="${today()}"><button id="dadd" class="primary">Log comp</button></div></div>`;
+}
+function wireCompSection(el, id, c) {
+  const b = el.querySelector('#dadd'); if (!b) return;
+  b.onclick = () => {
+    const p = parseFloat(el.querySelector('#dpr').value); if (!(p > 0)) { toast('Enter the sold price.'); return; }
+    addComp({ cardId: id, name: c.n, set: c.s, num: c.num }, el.querySelector('#dgr').value, p, el.querySelector('#ddt').value || today(), 'Other', '', '');
+    saveComps(); renderDrawer(); if (state.tab === 'comps' || state.tab === 'port') render();
+  };
+}
+
+function renderComps(v, a) {
+  const f = comps.form, rows = a ? a.rows : [];
+  const holdings = [...new Map(port.lots.map(l => [nkey(l) + '|' + gradeKey(l.grade), l])).values()];
+  const groups = {};
+  for (const c of comps.list) (groups[nkey(c) + '|' + gradeKey(c.grade)] ||= []).push(c);
+  const board = Object.entries(groups).map(([k, list]) => {
+    list.sort((x, y) => y.date.localeCompare(x.date));
+    const head = list[0], fv = fairValue(head, head.grade), gk = gradeKey(head.grade);
+    const owned = port.lots.filter(l => sameCard(l, head) && gradeKey(l.grade) === gk).reduce((t, l) => t + l.qty, 0);
+    const mkt = head.cardId && gk === 'Raw' ? latestPrice(head.cardId) : null;
+    return { k, list, head, fv, gk, owned, mkt };
+  }).sort((x, y) => y.head.date.localeCompare(x.head.date));
+  const boardHtml = board.length ? `<table><tr><th>Item</th><th>Grade</th><th class="num">Comps</th><th class="num">Fair value</th><th class="num">Range</th><th>Last sale</th><th class="num">Trend</th><th class="num">TCG market</th><th class="num">Owned</th></tr>` +
+    board.map(g => {
+      const open = state.open['comp:' + g.k], mk = g.mkt != null && g.fv ? (g.mkt - g.fv.fv) / g.fv.fv * 100 : null;
+      return `<tr class="tabrow" data-toggle="comp:${esc(g.k)}"><td>${open ? '▾' : '▸'} <b>${esc(g.head.name)}</b><div class="sub2" style="margin:0">${esc(g.head.set || '')}</div></td><td>${esc(g.gk)}</td><td class="num">${g.fv.used}${g.fv.n > g.fv.used ? ' / ' + g.fv.n : ''}</td>
+        <td class="num"><b>${usd(g.fv.fv)}</b> <span class="pill ${g.fv.conf === 'high' ? 'up' : g.fv.conf === 'low' ? 'down' : ''}">${g.fv.stale ? 'stale' : g.fv.conf}</span></td><td class="num">${usd(g.fv.lo)}–${usd(g.fv.hi)}</td>
+        <td>${usd(g.fv.last.price)} · ${esc(g.fv.last.date)}</td><td class="num">${g.fv.trend != null ? chgCell(g.fv.trend) : '—'}</td><td class="num">${g.mkt != null ? usd(g.mkt) + ' ' + chgCell(mk) : '—'}</td><td class="num">${g.owned || '—'}</td></tr>` +
+        (open ? `<tr><td colspan="9"><div class="setdetail"><table><tr><th>Sold</th><th class="num">Price</th><th>Source</th><th>Note</th><th></th></tr>${g.list.map(x => `<tr><td>${esc(x.date)}</td><td class="num">${usd(x.price)}</td><td>${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.source)} ↗</a>` : esc(x.source)}</td><td>${esc(x.note)}</td><td><a href="#" data-cdel="${esc(x.uid)}" style="color:var(--down)">✕</a></td></tr>`).join('')}</table></div></td></tr>` : '');
+    }).join('') + '</table>' : '<div class="empty">No comps yet. Pick an item above, look up its recent sold listings, and log the prices. Three to five recent sales give a trustworthy fair value.</div>';
+  const selTxt = f.name ? `${esc(f.name)}${f.set ? ' — ' + esc(f.set) : ''}${f.num ? ' #' + esc(f.num) : ''} · <b>${esc(f.grade)}</b> ${f.cardId ? '· linked to tracked card' : '· custom item'}` : 'Pick or type an item below';
+  v.innerHTML = `<p class="intro">When you see a card sell on eBay (or anywhere), log the price here. PokeTicker turns your logged sales into a fair price you can trust, and checks listings against it.</p>
+    <div class="dsec" style="margin-top:0;border:0;padding:0"><h2>1 · Choose the item</h2>
+      <div class="popform"><input type="text" id="cq" placeholder="Search a tracked card, or type any item name" value="${esc(f.cardId ? `${f.name} — ${f.set} #${f.num}` : f.name)}" style="flex:1;min-width:260px" autocomplete="off">
+        <select id="chold"><option value="">…or pick from my holdings</option>${holdings.map((l, i) => `<option value="${i}">${esc(l.name)}${l.grade ? ' (' + esc(gradeKey(l.grade)) + ')' : ''} — ${esc(l.set || '')}</option>`).join('')}</select>
+        <select id="cgrade">${GRADES.map(g => `<option${g === f.grade ? ' selected' : ''}>${g}</option>`).join('')}</select></div>
+      <div class="searchres" id="cres"></div><div class="sub2" id="csel">${selTxt}</div></div>
+    <div class="cols"><div class="dsec"><h2>2 · Log sold comps</h2>
+        <div class="popform"><input type="number" id="cprice" min="0" step="0.01" placeholder="Sold price ($)"><input type="date" id="cdate" value="${today()}"><select id="csrc">${SOURCES.map(s => `<option>${s}</option>`).join('')}</select>
+          <input type="text" id="curl" placeholder="Link to the sale (optional)" style="flex:1;min-width:160px"><input type="text" id="cnote" placeholder="Note (e.g. best offer, damaged)" style="flex:1;min-width:140px"><button class="primary" id="cadd">Add comp</button></div>
+        <div class="sub2">Faster: paste several sales for this item and grade — one per line, like <code>$412.50 10/15/2026</code> or <code>388 2026-10-12 https://…</code></div>
+        <textarea id="cbulk" rows="4" placeholder="$412.50 10/15/2026&#10;$399 Oct 12&#10;388 2026-10-09" style="width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit"></textarea>
+        <div style="margin-top:6px"><button id="cbulkadd">Add pasted comps</button> <span class="sub2" id="cmsg">${esc(comps.msg)}</span></div></div>
+      <div class="dsec"><h2>3 · Check a listing</h2>
+        <div class="popform"><input type="number" id="cask" min="0" step="0.01" placeholder="Asking price ($)"><input type="number" id="cship" min="0" step="0.01" placeholder="Shipping to you ($)">
+          <label class="sub2" style="margin:0">Selling fee % <input type="number" id="cfee" min="0" step="0.05" value="${comps.fee}" style="width:76px"></label>
+          <label class="sub2" style="margin:0">Your shipping/supplies $ <input type="number" id="cout" min="0" step="0.25" value="${comps.shipOut}" style="width:76px"></label></div>
+        <div id="cverdict" class="sub2" style="font-size:14px;color:var(--text)"></div></div></div>
+    <div class="dsec"><h2>Fair value board <span style="font-size:12px;font-weight:400" class="flat">— median of your last sold comps · ${comps.list.length} comp${comps.list.length === 1 ? '' : 's'} logged</span> <button id="cexport" style="float:right">Export comps (CSV)</button></h2>${boardHtml}
+      <p class="note">Fair value is the median of the last up to 7 comps within 90 days (so one lucky or unlucky sale doesn’t move it). It feeds your Portfolio values (◆), the Deals scores and each card’s page. Confidence: 5+ comps high, 3–4 medium, fewer low. Comps are only as good as what you log — match the grade and condition, and skip shill-looking or damaged-copy sales.</p></div>`;
+  wireComps(v, rows);
+}
+function wireComps(v, rows) {
+  const f = comps.form, $q = s => v.querySelector(s);
+  const verdict = () => {
+    const box = $q('#cverdict'), ask = parseFloat($q('#cask').value), ship = parseFloat($q('#cship').value) || 0;
+    comps.fee = parseFloat($q('#cfee').value) || 0; comps.shipOut = parseFloat($q('#cout').value) || 0; saveComps();
+    if (!f.name) { box.textContent = 'Choose an item first.'; return; }
+    const fv = fairValue(f, f.grade);
+    if (!fv) { box.textContent = `No sold comps logged yet for ${f.grade} copies of this item — log a few first.`; return; }
+    const head = `Fair value <b>${usd(fv.fv)}</b> (${fv.conf} confidence, ${fv.used} comp${fv.used === 1 ? '' : 's'}, range ${usd(fv.lo)}–${usd(fv.hi)}${fv.stale ? ', stale — no sale in 90 days' : ''}).`;
+    if (!(ask > 0)) { box.innerHTML = head + ' Enter an asking price to compare.'; return; }
+    const cost = ask + ship, vs = (cost - fv.fv) / fv.fv * 100, net = fv.fv * (1 - comps.fee / 100) - comps.shipOut, profit = net - cost, roi = profit / cost * 100;
+    const verdictTxt = vs <= -20 ? ['Strong deal', 'up'] : vs <= -10 ? ['Good price', 'up'] : vs <= 0 ? ['Fair — thin margin', 'flat'] : ['Overpriced vs your comps', 'down'];
+    box.innerHTML = `${head}<br><b class="${verdictTxt[1]}">${verdictTxt[0]}</b> — your cost ${usd(cost)} is <span class="${vs <= 0 ? 'up' : 'down'}">${pct(vs)}</span> vs fair value. If it resells at fair value: net ${usd(net)} after ${comps.fee}% fees and ${usd(comps.shipOut)} shipping → <b class="${profit >= 0 ? 'up' : 'down'}">${profit >= 0 ? '+' : '−'}${usd(Math.abs(profit))} (${pct(roi)} ROI)</b>.${fv.conf === 'low' ? ' <span class="down">Low confidence — log more comps before trusting this.</span>' : ''}`;
+  };
+  // item picker
+  const cq = $q('#cq'), res = $q('#cres'), setSel = () => { $q('#csel').innerHTML = f.name ? `${esc(f.name)}${f.set ? ' — ' + esc(f.set) : ''}${f.num ? ' #' + esc(f.num) : ''} · <b>${esc(f.grade)}</b> ${f.cardId ? '· linked to tracked card' : '· custom item'}` : 'Pick or type an item below'; verdict(); };
+  cq.oninput = () => {
+    Object.assign(f, { cardId: null, name: cq.value.trim(), set: '', num: '' }); setSel();
+    const q = cq.value.trim().toLowerCase(); if (q.length < 2 || !rows.length) { res.innerHTML = ''; return; }
+    const hits = rows.filter(r => (r.c.n + ' ' + r.c.s + ' ' + r.c.num).toLowerCase().includes(q)).sort((x, y) => y.price - x.price).slice(0, 8);
+    res.innerHTML = hits.map(r => `<a class="row" href="#" data-pick="${esc(r.id)}"><img src="${esc(r.c.img || '')}" alt=""><div class="info"><div class="name">${esc(r.c.n)}</div><div class="sub">${esc(r.c.s)} · #${esc(r.c.num)} · ${esc(r.c.r || '')}</div></div><div class="px"><b>${usd(r.price)}</b></div></a>`).join('');
+    res.querySelectorAll('[data-pick]').forEach(a2 => a2.onclick = e => { e.preventDefault(); const c = state.cards[a2.dataset.pick]; Object.assign(f, { cardId: a2.dataset.pick, name: c.n, set: c.s, num: c.num }); cq.value = `${c.n} — ${c.s} #${c.num}`; res.innerHTML = ''; setSel(); });
+  };
+  const holdings = [...new Map(port.lots.map(l => [nkey(l) + '|' + gradeKey(l.grade), l])).values()];
+  $q('#chold').onchange = e => { const l = holdings[+e.target.value]; if (!l) return; Object.assign(f, { cardId: l.cardId || null, name: l.name, set: l.set || '', num: l.num || '', grade: gradeKey(l.grade) }); renderComps(v.closest('#view') || v, lastA); };
+  $q('#cgrade').onchange = e => { f.grade = e.target.value; setSel(); };
+  // log comps
+  const done = msg => { comps.msg = msg; saveComps(); renderComps(v, lastA); };
+  $q('#cadd').onclick = () => {
+    if (!f.name) { toast('Choose the item first.'); return; }
+    const p = parseFloat($q('#cprice').value); if (!(p > 0)) { toast('Enter the sold price.'); return; }
+    const d = $q('#cdate').value || today();
+    addComp(f, f.grade, p, d > today() ? today() : d, $q('#csrc').value, $q('#curl').value.trim(), $q('#cnote').value.trim());
+    done(`Added ${usd(p)} for ${f.name} (${f.grade}).`);
+  };
+  $q('#cbulkadd').onclick = () => {
+    if (!f.name) { toast('Choose the item first.'); return; }
+    const items = parseCompLines($q('#cbulk').value); if (!items.length) { toast('No prices found — put one sale per line, e.g. $412.50 10/15/2026'); return; }
+    items.forEach(it => addComp(f, f.grade, it.price, it.date, $q('#csrc').value, it.url, ''));
+    done(`Added ${items.length} comp${items.length === 1 ? '' : 's'} for ${f.name} (${f.grade}).`);
+  };
+  v.querySelectorAll('[data-cdel]').forEach(a2 => a2.onclick = e => { e.preventDefault(); e.stopPropagation(); comps.list = comps.list.filter(x => x.uid !== a2.dataset.cdel); saveComps(); render(); });
+  ['#cask', '#cship', '#cfee', '#cout'].forEach(s => { $q(s).oninput = verdict; });
+  $q('#cexport').onclick = () => download(`poketicker-comps-${today()}.csv`, [['Date sold', 'Item', 'Set', 'Number', 'Grade', 'Price', 'Source', 'URL', 'Note'], ...comps.list.map(c => [c.date, c.name, c.set, c.num, c.grade, c.price, c.source, c.url, c.note])].map(r => r.map(csvCell).join(',')).join('\n'), 'text/csv');
+  verdict();
+}
+
+// ---------- views ----------
+let lastA = null;
+function render() {
+  const a = analysis(); lastA = a;
+  const upd = state.updated ? new Date(state.updated).toLocaleString() : 'never';
+  $('meta').textContent = `Last updated: ${upd} · ${Object.keys(state.cards).length} cards tracked · ${a.dates.length} daily snapshot${a.dates.length === 1 ? '' : 's'}`;
+  const navTab = ['market', 'sets', 'live'].includes(state.tab) ? 'more' : state.tab;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === navTab));
+  if (a.rows.length && state.fullDate === today()) logPredictions(a);
+  const v = $('view');
+  if (!a.rows.length && !['port', 'sets', 'comps', 'home', 'more'].includes(state.tab)) { v.innerHTML = '<div class="empty">No data yet. Hit <b>Refresh now</b> to pull today\'s prices.</div>'; return; }
+  if (state.tab === 'live') {
+    live.unseen = 0; updateBadge();
+    const byId = Object.fromEntries(a.rows.map(r => [r.id, r]));
+    const srcDates = Object.values(live.src).sort(); const srcNewest = srcDates.length ? srcDates[srcDates.length - 1] : (state.sets.map(s => s.srcDate).filter(Boolean).sort().pop() || '');
+    const feedHtml = live.feed.length ? live.feed.slice(0, 60).map(f => {
+      const c = state.cards[f.id]; if (!c) return '';
+      const cls = f.pct > 0 ? 'up' : 'down';
+      return `<a class="feed" data-open="${esc(f.id)}" ${c.url ? `href="${esc(c.url)}" target="_blank" rel="noopener"` : ''} style="text-decoration:none;color:inherit"><span class="t">${new Date(f.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span><img src="${esc(c.img || '')}" alt=""><div class="info" style="flex:1;min-width:0"><div class="name" style="font-weight:600">${esc(c.n)}</div><div class="sub" style="color:var(--muted);font-size:12px">${esc(c.s)} · ${usd(f.old)} → ${usd(f.p)}</div></div><b class="${cls}">${pct(f.pct)}</b></a>`;
+    }).join('') : '<div class="empty">No price changes detected yet. The price source publishes updates in bursts (about once a day), so this feed fills in when new prices land — keep the app open.</div>';
+    const watchRows = live.watch.map(id => byId[id]).filter(Boolean);
+    const watchHtml = watchRows.length ? watchRows.map(r => rowHtml({ ...r, price: live.prices[r.id] ?? r.price }, 'value')).join('')
+      : '<div class="empty">Click ☆ on any card (or search above) to watch it. Watched cards are always checked and trigger alerts.</div>';
+    v.innerHTML = `<div class="livebar">
+        <div class="grow"><b>${live.on ? 'Live monitoring is ON' : 'Live monitoring is paused'}</b> — checking <b>${pollIds().length}</b> cards (your watchlist + top 100 by value)<br>
+          <span class="flat">Last check: ${live.last ? new Date(live.last).toLocaleTimeString() : 'not yet'} · Next in <span id="cd">—</span>${live.error ? ` · <span class="down">${esc(live.error)}</span>` : ''}</span></div>
+        <label>Every <select id="liveint">${[5, 10, 15, 30, 60].map(m => `<option value="${m}"${m === live.interval ? ' selected' : ''}>${m} min</option>`).join('')}</select></label>
+        <button id="livetoggle">${live.on ? 'Pause' : 'Resume'}</button><button id="livenow" ${live.polling ? 'disabled' : ''}>Check now</button>
+        <label><input type="checkbox" id="livenotify" ${live.notify ? 'checked' : ''}> Windows notifications</label>
+        <label>Alert on watched ≥ <input type="number" id="livealert" min="0.1" step="0.5" value="${live.alertPct}">%</label>
+      </div>
+      <p class="sub2">Price source last updated: <b>${esc(srcNewest || 'unknown')}</b>. This data (TCGplayer via pokemontcg.io) is refreshed by the provider about once a day, so “live” means PokeTicker catches each change within minutes of it being published — not tick-by-tick.</p>
+      <div class="cols"><div><h2>⚡ Live change feed</h2>${feedHtml}</div>
+      <div><h2>★ Watchlist</h2><input type="text" id="wsearch" placeholder="Search a card name to watch…"><div class="searchres" id="sres"></div><div style="margin-top:8px">${watchHtml}</div></div></div>`;
+    $('liveint').onchange = e => { live.interval = +e.target.value; live.next = Date.now() + live.interval * 60000; saveLive(); render(); };
+    $('livetoggle').onclick = () => { live.on = !live.on; live.next = Date.now() + 1000; saveLive(); updateBadge(); render(); };
+    $('livenow').onclick = () => livePoll();
+    $('livealert').onchange = e => { live.alertPct = Math.max(0.1, +e.target.value || 3); saveLive(); };
+    $('livenotify').onchange = async e => {
+      live.notify = e.target.checked;
+      if (live.notify && 'Notification' in window && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch (x) { /* ignore */ } }
+      if (live.notify && (!('Notification' in window) || Notification.permission !== 'granted')) toast('Windows blocked notifications for this app — in-app alerts will still pop up.');
+      saveLive();
+    };
+    $('wsearch').oninput = e => {
+      const q = e.target.value.trim().toLowerCase(); const res = $('sres');
+      if (q.length < 2) { res.innerHTML = ''; return; }
+      res.innerHTML = a.rows.filter(r => r.c.n.toLowerCase().includes(q)).sort((x, y) => y.price - x.price).slice(0, 8).map(r => rowHtml(r, 'value')).join('') || '<div class="empty">No match.</div>';
+    };
+  } else if (state.tab === 'port') {
+    renderPortfolio(v);
+  } else if (state.tab === 'deals') {
+    renderDeals(v, a);
+  } else if (state.tab === 'home') {
+    renderHome(v, a);
+  } else if (state.tab === 'more') {
+    renderMore(v);
+  } else if (state.tab === 'comps') {
+    renderComps(v, a);
+  } else if (state.tab === 'market') {
+    const eras = ERA_GROUPS.map(g => g[0]).filter(e => a.rows.some(r => eraOfCard(r.c) === e));
+    const rars = [...new Set(a.rows.map(r => r.c.r).filter(Boolean))].sort();
+    v.innerHTML = `<div class="toolbar"><input type="text" id="sq" placeholder="Search card or set…" value="${esc(state.scr.q)}" style="width:220px">
+        <select id="sera"><option value="">All eras</option>${eras.map(e => `<option${e === state.scr.era ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select>
+        <select id="srar"><option value="">All rarities</option>${rars.map(e => `<option${e === state.scr.rar ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select>
+        <span>Min $<input type="number" id="minp" min="0" step="0.5" value="${state.minPrice}"></span></div><div id="scrbody"></div>`;
+    $('sq').oninput = e => { state.scr.q = e.target.value; state.scr.limit = 100; drawScreener(); };
+    $('sera').onchange = e => { state.scr.era = e.target.value; state.scr.limit = 100; drawScreener(); };
+    $('srar').onchange = e => { state.scr.rar = e.target.value; state.scr.limit = 100; drawScreener(); };
+    $('minp').onchange = e => { state.minPrice = Math.max(0, +e.target.value || 0); store.set('pt_min', state.minPrice); state.scr.limit = 100; drawScreener(); };
+    drawScreener();
+  } else if (state.tab === 'sets') {
+    v.innerHTML = eraView(a);
+  }
+}
+
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { state.tab = b.dataset.tab; render(); });
+$('refresh').onclick = () => refresh(false);
+$('livebadge').onclick = () => { state.tab = 'live'; render(); };
+$('view').addEventListener('click', e => {
+  const s = e.target.closest('.star');
+  if (s) { e.preventDefault(); e.stopPropagation(); toggleWatch(s.dataset.id); return; }
+  const tr = e.target.closest('[data-track]'); if (tr) { e.preventDefault(); trackSet(tr.dataset.track); return; }
+  const ut = e.target.closest('[data-untrack]'); if (ut) { e.preventDefault(); untrackSet(ut.dataset.untrack); return; }
+  const tg = e.target.closest('[data-toggle]');
+  if (tg) { const k = tg.dataset.toggle; const cur = k in state.open ? state.open[k] : (k.startsWith('era:') && tg.textContent.includes('▾')); state.open[k] = !cur; render(); return; }
+  const go = e.target.closest('[data-go]'); if (go) { e.preventDefault(); state.tab = go.dataset.go; render(); window.scrollTo(0, 0); return; }
+  const op = e.target.closest('[data-open]'); if (op) { e.preventDefault(); openCard(op.dataset.open); }
+});
+$('drawer').addEventListener('click', e => {
+  const s = e.target.closest('.star'); if (s) { e.preventDefault(); toggleWatch(s.dataset.id); }
+});
+$('scrim').onclick = closeCard;
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.sel) closeCard(); });
+$('setCount').value = String(store.get('pt_nsets', 8));
+state.tab = 'home';
+loadAllSets(); loadFx();
+render(); updateBadge();
+// live loop: one 1-second ticker drives the countdown and triggers polls (also catches up after sleep)
+setInterval(() => {
+  const cd = $('cd'); if (cd) cd.textContent = live.polling ? 'checking…' : live.on ? ago(live.next - Date.now()) : 'paused';
+  if (live.on && !live.polling && Date.now() >= live.next && !$('refresh').disabled) livePoll();
+}, 1000);
+// daily auto-refresh: on open if no snapshot today, and every 6h while the app stays open
+if (state.fullDate !== today()) refresh(true);
+setInterval(() => { if (state.fullDate !== today() || Date.now() - new Date(state.updated).getTime() > 6 * 36e5) refresh(true); }, 30 * 60 * 1000);
+// installable app: offline shell + ask the browser to keep this app's data (so it isn't cleared when space is low)
+if (location.protocol.startsWith('http')) {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* optional */ }
+}
+window.__pt = { state, live, port, fx, preds, comps, trackRecord, outlook,refresh, render, renderDrawer, livePoll, importCsv, portSummary, scoreDeal, lastA: () => lastA, store };   // debug handle
+})();
+</script>
+</body>
+</html>
