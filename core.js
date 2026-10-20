@@ -108,15 +108,16 @@ function validateLatest(L) {
 function applyLatest(L) {
   const F = {}; L.f.forEach((k, i) => { F[k] = i; });
   const sets = L.sets.map((s, i) => ({ idx: i, id: s.id, gid: String(s.id).replace(/^g/, ''), name: s.n, abbr: s.a, date: s.d, series: s.e, count: s.c }));
-  const cards = {};
+  const cards = {}; let maxNp = 0;
   for (const r of L.i) {
     const id = String(r[F.id]), st = sets[r[F.s]]; if (!st) continue;
     const pid = id.split('-')[0];
     cards[id] = { n: String(r[F.n]), sub: r[F.sub] || '', s: st.name, sid: st.id, ab: st.abbr || '', ser: st.series, r: r[F.r] || '', num: r[F.num] || '', k: r[F.k] ? 1 : 0, p: r[F.p],
       pr: { l: r[F.l], m: r[F.m], h: r[F.h] }, pf: { d1: r[F.d1], d7: r[F.d7], d30: r[F.d30], vol: r[F.vol], np: r[F.np] || 0 },
       rel: st.date, pid, img: imgOf(pid), url: 'https://www.tcgplayer.com/product/' + pid };
+    if (cards[id].pf.np > maxNp) maxNp = cards[id].pf.np;
   }
-  state.cards = cards; state.sets = sets; state.eng = { date: L.date, updated: L.updated };
+  state.cards = cards; state.sets = sets; state.eng = { date: L.date, updated: L.updated, days: maxNp };
   state.rows = null; state.idx = null; state.byPid = null;
 }
 async function loadEngine(manual) {
