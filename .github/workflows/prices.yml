@@ -1,0 +1,61 @@
+name: Daily prices
+
+# Builds the price data PokéTicker loads. Uses no third-party actions: only git and python3 on the runner.
+# Output goes to a single-commit "data" branch (no history growth); the app reads it from raw.githubusercontent.com.
+on:
+  schedule:
+    - cron: '35 21 * * *'          # tcgcsv refreshes around 20:00 UTC; run after it
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Rebuild even if the source has not changed'
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths: ['engine/**', '.github/workflows/prices.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prices
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Get the engine code and the previous data
+        run: |
+          git clone --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" code
+          mkdir -p prev
+          if git clone --depth 1 --branch data "https://github.com/${GITHUB_REPOSITORY}.git" prevdata 2>/dev/null; then
+            cp -r prevdata/. prev/ && rm -rf prev/.git
+          fi
+          ls prev | head
+
+      - name: Build prices
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          FORCE_INPUT: ${{ inputs.force }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          ARGS=""
+          if [ "$FORCE_INPUT" = "true" ] || [ "$EVENT" = "push" ]; then ARGS="--force"; fi
+          python3 code/engine/update.py --prev prev --out out $ARGS
+
+      - name: Publish the data branch
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          if [ -f out/.skip ]; then echo "No new data today."; exit 0; fi
+          cd out
+          git init -q -b data
+          git config user.name "poketicker-engine"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Prices $(date -u +%F)"
+          git remote add origin "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -f origin data
