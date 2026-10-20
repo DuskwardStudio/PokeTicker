@@ -16,7 +16,7 @@ import argparse, datetime, json, math, os, re, sys, time, urllib.error, urllib.r
 
 UA = 'PokeTicker/1.0 (personal price tracker; +https://github.com/DuskwardStudio/PokeTicker)'
 BASE = 'https://tcgcsv.com/tcgplayer/3'          # category 3 = Pokémon
-MIN_CARD = 0.25                                  # ignore card rows cheaper than this (noise)
+MIN_CARD = 0.10                                  # ignore card rows cheaper than this (noise)
 HIST_MIN = 1.00                                  # keep price history for rows worth at least this
 HIST_DAYS = 400                                  # rolling history window
 FIELDS = ['id', 's', 'n', 'num', 'r', 'k', 'sub', 'p', 'l', 'm', 'h', 'd1', 'd7', 'd30', 'vol', 'np']
