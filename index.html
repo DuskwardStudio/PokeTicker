@@ -114,6 +114,7 @@
   .setdetail { background: var(--bg); border-radius: 10px; padding: 14px; margin: 4px 0 12px; }
   .tabrow { cursor: pointer; } .tabrow:hover td { background: var(--panel2); }
   .tile .big.up { color: var(--up); } .tile .big.down { color: var(--down); }
+  .sm { display: none; font-size: 12px; margin-top: 2px; }
   .intro { color: var(--muted); font-size: 13px; margin: 0 0 14px; max-width: 70ch; }
   .menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 18px; }
   .menu button { text-align: left; padding: 16px; border-radius: 12px; background: var(--panel2); }
@@ -138,6 +139,7 @@
     .cols { grid-template-columns: 1fr; }
     #view table { display: block; overflow-x: auto; white-space: nowrap; }
     .hm { display: none; }
+    .sm { display: block; }
     .popform input, .popform select { flex: 1 1 130px; }
     .drawer { width: 100%; }
     .toasts { bottom: 74px; }
@@ -1022,10 +1024,10 @@ function drawDeals() {
   if (d.sig === 'eu') rows = rows.filter(r => r.gapEU != null && r.gapEU >= 8);
   if (d.sig === 'floor') rows = rows.filter(r => r.floor != null && r.floor >= 15);
   rows = rows.filter(r => r.idea >= 20).sort((x, y) => y.idea - x.idea);
-  box.innerHTML = `<table class="scr"><tr><th>Idea score</th><th>Card</th><th class="num">Price</th><th>90-day outlook</th><th class="hm">Why it’s flagged</th><th></th></tr>` +
+  box.innerHTML = `<table class="scr"><tr><th>Idea score</th><th>Card</th><th class="num">Price</th><th class="hm">90-day outlook</th><th class="hm">Why it’s flagged</th><th></th></tr>` +
     (rows.slice(0, d.limit).map(r => { const w = r.ol ? outlookWord(r.ol[90].pct) : ['—', 'flat']; return `<tr data-open="${esc(r.id)}"><td style="width:90px"><b>${r.idea}</b><div style="background:var(--panel2);border-radius:4px;height:6px;margin-top:3px"><div style="width:${Math.min(100, r.idea)}%;height:6px;border-radius:4px;background:${r.spike ? 'var(--down)' : 'var(--up)'}"></div></div></td>
-      <td><img loading="lazy" src="${esc(r.c.img || '')}" alt=""><b>${esc(r.c.n)}</b>${held.has(r.id) ? ' <span class="pill">owned</span>' : ''}<div class="sub2" style="margin:0">${esc(r.c.s)} · ${esc(r.c.r || '')}</div></td>
-      <td class="num"><b>${usd(r.price)}</b></td><td>${r.ol ? `<b class="${w[1]}">${w[0]}</b> ${chgCell(r.ol[90].pct)}<div class="sub2" style="margin:0">${usd(r.ol[90].lo)}–${usd(r.ol[90].hi)} typical</div>` : '—'}</td>
+      <td><img loading="lazy" src="${esc(r.c.img || '')}" alt=""><b>${esc(r.c.n)}</b>${held.has(r.id) ? ' <span class="pill">owned</span>' : ''}<div class="sub2" style="margin:0">${esc(r.c.s)} · ${esc(r.c.r || '')}</div>${r.ol ? `<div class="sm"><b class="${w[1]}">${w[0]}</b> ${chgCell(r.ol[90].pct)} in 90 days</div>` : ''}</td>
+      <td class="num"><b>${usd(r.price)}</b></td><td class="hm">${r.ol ? `<b class="${w[1]}">${w[0]}</b> ${chgCell(r.ol[90].pct)}<div class="sub2" style="margin:0">${usd(r.ol[90].lo)}–${usd(r.ol[90].hi)} typical</div>` : '—'}</td>
       <td class="hm">${r.why.map(x => `<span class="pill">${esc(x)}</span>`).join('')}${r.spike ? '' : (r.ol && r.ol.why[0] ? `<span class="pill">${esc(r.ol.why[0])}</span>` : '')}</td>
       <td><span class="star${live.watch.includes(r.id) ? ' on' : ''}" data-id="${esc(r.id)}" role="button">${live.watch.includes(r.id) ? '★' : '☆'}</span></td></tr>`; }).join('') || '<tr><td colspan="6"><div class="empty">Nothing stands out right now. Ideas get better as PokeTicker builds a few weeks of its own price history.</div></td></tr>') +
     `</table>${rows.length > d.limit ? `<p style="text-align:center"><button id="dmore">Show more</button></p>` : ''}
@@ -1139,7 +1141,7 @@ function renderMore(v) {
       <button data-go="port"><b>Backup &amp; Import</b><span>Back up your data or import a Collectr file (bottom of My Cards).</span></button></div>
     <details class="guide" style="margin:0 0 18px"><summary>Put PokéTicker on your phone’s home screen</summary>
       <p class="intro" style="max-width:none;margin-top:10px"><b>iPhone (Safari):</b> open this page in Safari, tap the Share button, then <b>Add to Home Screen</b>.<br>
-        <b>Android (Chrome):</b> tap the ⋮ menu, then <b>Install app</b> (or <b>Add to Home screen</b>).<br>
+        <b>Android (Chrome):</b> tap the ⋮ menu, then <b>Install app</b> (or <b>Add to Home screen</b>). <b>Samsung Internet:</b> tap the ☰ menu, then <b>Add page to</b> → <b>Home screen</b>.<br>
         Your cards and history are saved on the phone itself. Use <b>My Cards → Back up everything</b> now and then, and to move data between your phone and your PC (back up on one, restore on the other).</p></details>
     <h2>What the numbers mean</h2>
     <p class="intro" style="max-width:none"><b>Market price</b> — what a card has recently been selling for on TCGplayer.<br><b>Fair value</b> — the middle price of the sales you logged yourself.<br><b>Outlook</b> — a rough guess of the price in 30, 90 and 180 days based on the set’s age, recent movement and your data. It can be wrong.<br><b>Idea score</b> — how strongly PokeTicker’s signals point to a card being cheap right now (0–100).<br><b>Up / down</b> — your cards’ current value compared with what you paid.</p>`;
