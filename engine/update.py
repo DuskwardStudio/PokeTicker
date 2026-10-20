@@ -62,6 +62,15 @@ def era_of(date, name):
     return 'Mega Evolution'
 
 
+NAME_RE = re.compile(r'^(.*?)\s+-\s+([A-Za-z]{0,6}\d+[A-Za-z]?(?:/[A-Za-z0-9]+)?)(?:\s*\(([^)]*)\))?\s*$')
+
+
+def clean_name(n):
+    """'Umbreon ex - 161/131' -> ('Umbreon ex', ''); 'Mew - 8 (Glossy Finish)' -> ('Mew', 'Glossy Finish')."""
+    m = NAME_RE.match(n)
+    return (m.group(1).strip(), (m.group(3) or '').strip()) if m else (n, '')
+
+
 def sub_code(sub):
     s = (sub or '').strip().lower()
     return SUB_CODES.get(s) or (re.sub(r'[^a-z0-9]', '', s)[:6] or 'x')
@@ -166,6 +175,7 @@ def main():
             ext = {e['name']: e['value'] for e in p.get('extendedData', [])}
             number, rarity = ext.get('Number', ''), ext.get('Rarity', '')
             is_card = bool(number)
+            base_name, qualifier = clean_name(p['name']) if is_card else (p['name'], '')
             if not is_card and p['name'].startswith('Code Card'):
                 continue
             for r in rows:
@@ -178,8 +188,8 @@ def main():
                     low = None
                 item_id = '%d-%s' % (pid, sub_code(sub))
                 group_items.append({
-                    'id': item_id, 's': set_idx, 'n': p['name'], 'num': number, 'r': rarity, 'k': 0 if is_card else 1,
-                    'sub': sub if len(rows) > 1 else '', 'p': rnd(m), 'l': rnd(low), 'm': rnd(r.get('midPrice')), 'h': rnd(r.get('highPrice')),
+                    'id': item_id, 's': set_idx, 'n': base_name, 'num': number, 'r': rarity, 'k': 0 if is_card else 1,
+                    'sub': ' · '.join(x for x in (qualifier, sub if len(rows) > 1 else '') if x), 'p': rnd(m), 'l': rnd(low), 'm': rnd(r.get('midPrice')), 'h': rnd(r.get('highPrice')),
                 })
         if not group_items:
             sets.append({'id': 'g%d' % gid, 'n': g['name'], 'a': g.get('abbreviation') or '', 'd': rel, 'e': era_of(rel, g['name']), 'c': 0})
